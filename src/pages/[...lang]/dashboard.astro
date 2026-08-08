@@ -1,0 +1,19 @@
+---
+import { DEFAULT_LOCALE, LOCALES } from "../../i18n/utils";
+import DashboardPanel from "@components/dashboard/DashboardPanel.svelte";
+import DashboardLayout from "@layouts/DashboardLayout.astro";
+
+export function getStaticPaths() {
+	return LOCALES.map((locale) => ({
+		// 默认语言不带前缀：lang 传 undefined 即匹配根路径
+		params: { lang: locale === DEFAULT_LOCALE ? undefined : locale },
+		props: { locale },
+	}));
+}
+
+const { locale } = Astro.props;
+---
+
+<DashboardLayout lang={locale} title="展板">
+    <DashboardPanel client:only="svelte" />
+</DashboardLayout>

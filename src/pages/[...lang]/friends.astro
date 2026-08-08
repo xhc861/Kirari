@@ -1,9 +1,9 @@
 ---
-import FriendCard from "../components/FriendCard.astro";
-import { externalSites, friends } from "../friends";
-import I18nKey from "../i18n/i18nKey";
-import { i18n } from "../i18n/translation";
-import MainGridLayout from "../layouts/MainGridLayout.astro";
+import { DEFAULT_LOCALE, LOCALES, useTranslations } from "../../i18n/utils";
+import FriendCard from "../../components/FriendCard.astro";
+import { externalSites, friends } from "../../friends";
+import I18nKey from "../../i18n/i18nKey";
+import MainGridLayout from "../../layouts/MainGridLayout.astro";
 
 // 分离置顶和非置顶友链
 const pinnedFriends = friends.filter((friend) => friend.pin === true);
@@ -16,18 +16,29 @@ const shuffledNonPinnedFriends = nonPinnedFriends.sort(
 
 // 合并置顶和随机排序的非置顶友链
 const sortedFriends = [...pinnedFriends, ...shuffledNonPinnedFriends];
+
+export function getStaticPaths() {
+	return LOCALES.map((locale) => ({
+		// 默认语言不带前缀：lang 传 undefined 即匹配根路径
+		params: { lang: locale === DEFAULT_LOCALE ? undefined : locale },
+		props: { locale },
+	}));
+}
+
+const { locale } = Astro.props;
+const t = useTranslations(locale);
 ---
 
-<MainGridLayout 
-	title={i18n(I18nKey.friends)} 
-	description={i18n(I18nKey.friends)}
+<MainGridLayout lang={locale} 
+	title={t(I18nKey.friends)} 
+	description={t(I18nKey.friends)}
 >
 	<div class="space-y-8">
 		<!-- 标题部分 -->
 		<div class="space-y-3">
 			<br><br>  <!-- 两个br能解决的干嘛要重写css呢(/doge) -->
 			<h1 class="text-4xl md:text-5xl font-bold text-gray-900 dark:text-gray-100">
-				{i18n(I18nKey.friends)}
+				{t(I18nKey.friends)}
 			</h1>
 			<p class="text-lg text-gray-600 dark:text-gray-400">
 				一群志同道合的朋友，一起分享知识和经验
@@ -81,10 +92,10 @@ const sortedFriends = [...pinnedFriends, ...shuffledNonPinnedFriends];
 		<section class="mt-12 pt-8 border-t border-gray-200 dark:border-gray-700">
 			<div class="space-y-4">
 				<h2 class="text-3xl font-bold text-gray-900 dark:text-gray-100">
-					{i18n(I18nKey.friendLink)}
+					{t(I18nKey.friendLink)}
 				</h2>
 				<p class="text-gray-600 dark:text-gray-400 leading-relaxed">
-					{i18n(I18nKey.friendLinkDescription)}
+					{t(I18nKey.friendLinkDescription)}
 				</p>
 
 				<!-- 联系方式卡片 -->
@@ -196,7 +207,7 @@ const sortedFriends = [...pinnedFriends, ...shuffledNonPinnedFriends];
 </script>
 
 <style>
-	@reference "../styles/theme.css";
+	@reference "../../styles/theme.css";
 
 	/* 确证失效的友链：淡化并加一枚角标，但仍可点击 */
 	:global(.friend-dead) {
