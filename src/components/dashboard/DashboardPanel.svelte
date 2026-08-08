@@ -2,6 +2,7 @@
 import { onMount } from "svelte";
 import UABadge from "../UABadge.svelte";
 import CalendarModule from "./CalendarModule.svelte";
+import DashboardHeader from "./DashboardHeader.svelte";
 import CountdownModule from "./CountdownModule.svelte";
 import ExtraFeaturesModule from "./ExtraFeaturesModule.svelte";
 import MicroNewsModule from "./MicroNewsModule.svelte";
@@ -42,8 +43,13 @@ onMount(() => {
   class="dashboard-container"
   class:no-countdown={countdownsChecked && !hasCountdowns}
 >
+  <!-- 头部：时段问候 + 日期 + 走动的时钟 -->
+  <div class="dash-section" style="--enter-order: 0">
+    <DashboardHeader />
+  </div>
+
   <!-- 顶部：日历 / 可选倒计时；无倒计时时压缩与微新闻的间距 -->
-  <div class="primary-stack">
+  <div class="primary-stack dash-section" style="--enter-order: 1">
     <div class="calendar-section">
       <CalendarModule />
     </div>
@@ -56,12 +62,12 @@ onMount(() => {
   </div>
 
   <!-- 微新闻 - 单独一行 -->
-  <div class="micro-news-section">
+  <div class="micro-news-section dash-section" style="--enter-order: 2">
     <MicroNewsModule />
   </div>
 
   <!-- 待办事项（较窄）+ 中考成绩（弹性占满） -->
-  <div class="two-column-grid">
+  <div class="two-column-grid dash-section" style="--enter-order: 3">
     <div class="todo-col">
       <TodoModule />
     </div>
@@ -71,12 +77,12 @@ onMount(() => {
   </div>
 
   <!-- 抽签和每日英语 - 单独一行 -->
-  <div class="extra-features-section">
+  <div class="extra-features-section dash-section" style="--enter-order: 4">
     <ExtraFeaturesModule />
   </div>
 
   <!-- UA 信息 - 底部 -->
-  <div class="ua-section">
+  <div class="ua-section dash-section" style="--enter-order: 5">
     <UABadge />
   </div>
 </div>
@@ -88,6 +94,41 @@ onMount(() => {
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
+  }
+
+  /*
+   * 入场编排：模块依次浮现，而不是整屏同时砸下来。
+   * 每块延迟 70ms，最后一块也在半秒内到位，不会让人等。
+   */
+  .dash-section {
+    animation: dash-enter 460ms cubic-bezier(0.22, 0.8, 0.3, 1) backwards;
+    animation-delay: calc(var(--enter-order, 0) * 70ms);
+  }
+
+  @keyframes dash-enter {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: none; }
+  }
+
+  /* 卡片对指针有反应：轻微抬起 + 阴影，避免整页毫无回馈 */
+  .dashboard-container :global(.card-base) {
+    transition: transform 0.24s ease, box-shadow 0.24s ease;
+  }
+  .dashboard-container :global(.card-base:hover) {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.07);
+  }
+  :global(.dark) .dashboard-container :global(.card-base:hover) {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .dash-section { animation: none; }
+    .dashboard-container :global(.card-base),
+    .dashboard-container :global(.card-base:hover) {
+      transition: none;
+      transform: none;
+    }
   }
 
   .primary-stack {
