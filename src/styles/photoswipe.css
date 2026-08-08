@@ -1,3 +1,5 @@
+@reference "./theme.css";
+
 /* Tailwind v4：important 修饰符由前缀 `!utility` 改为后缀 `utility!` */
 .pswp__button {
     @apply transition! bg-black/40! hover:bg-black/50! active:bg-black/60! flex! items-center! justify-center! mr-0! w-12! h-12!;
