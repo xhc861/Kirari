@@ -1,5 +1,6 @@
 ---
-import "@fontsource-variable/jetbrains-mono";
+// 指到具体 .css 而非包根：包根导出没有类型声明，TS 会报 ts(2882)
+import "@fontsource-variable/jetbrains-mono/index.css";
 import "@fontsource-variable/jetbrains-mono/wght-italic.css";
 
 interface Props {
