@@ -1,0 +1,29 @@
+---
+/**
+ * 首页主体。
+ *
+ * 抽成组件是因为首页路由自带 rest 参数（[...page] 分页），而 Astro
+ * 一条路由只允许一个 rest 参数 —— [...lang]/[...page] 是非法的。
+ * 所以中英文各有一个薄壳页面（src/pages/[...page].astro 与
+ * src/pages/en/[...page].astro），共用这里的主体。
+ */
+import Pagination from "@components/control/Pagination.astro";
+import PostPage from "@components/PostPage.astro";
+import MainGridLayout from "@layouts/MainGridLayout.astro";
+import type { CollectionEntry } from "astro:content";
+import type { Page } from "astro";
+import type { Locale } from "../../i18n/utils";
+
+interface Props {
+	page: Page<CollectionEntry<"posts">>;
+	locale: Locale;
+}
+const { page, locale } = Astro.props;
+
+const len = page.data.length;
+---
+
+<MainGridLayout lang={locale}>
+    <PostPage page={page}></PostPage>
+    <Pagination class="mx-auto onload-animation" page={page} style={`animation-delay: calc(var(--content-delay) + ${(len)*50}ms)`}></Pagination>
+</MainGridLayout>
