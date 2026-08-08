@@ -1,8 +1,15 @@
 /*
+ * 分片样式的汇总入口。
+ *
+ * 注意这里**不**引入 theme.css —— 那样 global.css 会连带生成一整份 Tailwind
+ * base，而 theme.css 因为被各分片 @reference 又会被单独输出一份，两边各带一套
+ * preflight，实测白白多出 82 KB。现在由 Layout.astro 分别引入两个文件，
+ * base 只生成一次。
+ */
+/*
  * 全站样式入口，由 Layout.astro 引入。
  * Tailwind 本体与自定义 utility 见 theme.css（引用根）。
  */
-@import "./theme.css";
 @import "./main.css";
 @import "./markdown.css";
 @import "./scrollbar.css";
