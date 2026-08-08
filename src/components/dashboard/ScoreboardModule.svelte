@@ -1,4 +1,5 @@
 <script lang="ts">
+import { onMount } from "svelte";
 /** 计分科目成绩（全部未公布时为 null） */
 interface ScoredSubjects {
 	total: number | null;
@@ -26,7 +27,15 @@ interface RankInfo {
 	schoolQuota: number | null;
 }
 
-const scores: ScoredSubjects = {
+/*
+ * 数据来自 public/scoreboard.json。
+ *
+ * 这里原本把科目、分数、等级全写死在组件里 —— 展板其他模块都是读
+ * public/*.json，只有它要改一次成绩就得动代码。外置之后模式统一了，
+ * 这个模块对模板使用者也才有意义。
+ */
+let title = "成绩单";
+let scores: ScoredSubjects = {
 	total: null,
 	chinese: null,
 	math: null,
@@ -36,26 +45,83 @@ const scores: ScoredSubjects = {
 	chemistry: null,
 	history: null,
 	politics: null,
-	pe: 50,
+	pe: null,
 	policyBonus: null,
 };
 
-const nonScored: NonScoredItem[] = [
-	{ name: "生物", result: "A" },
-	{ name: "地理", result: "A" },
-	{ name: "信息技术", result: "A" },
-	{ name: "音乐", result: "A" },
-	{ name: "美术", result: "A" },
-	{ name: "物理实验", result: "合格" },
-	{ name: "化学实验", result: "合格" },
-	{ name: "生物实验", result: "合格" },
-];
+let nonScored: NonScoredItem[] = [];
 
-const ranks: RankInfo = {
+let ranks: RankInfo = {
 	city: null,
 	district: null,
 	schoolQuota: null,
 };
+
+/** JSON 里用中文键，便于非技术用户直接编辑 */
+const SCORE_KEY_MAP: Record<string, keyof ScoredSubjects> = {
+	总分: "total",
+	语文: "chinese",
+	数学: "math",
+	英语笔试: "englishWritten",
+	英语听说: "englishListening",
+	物理: "physics",
+	化学: "chemistry",
+	历史: "history",
+	政治: "politics",
+	体育与健康: "pe",
+	政策性加分: "policyBonus",
+};
+
+const RANK_KEY_MAP: Record<string, keyof RankInfo> = {
+	市排名: "city",
+	区排名: "district",
+	校内指标: "schoolQuota",
+};
+
+async function loadScoreboard() {
+	try {
+		const res = await fetch("/scoreboard.json", { cache: "no-store" });
+		if (!res.ok) return;
+		const data = await res.json();
+
+		if (typeof data?.title === "string" && data.title.trim()) {
+			title = data.title.trim();
+		}
+
+		if (data?.scored && typeof data.scored === "object") {
+			const next = { ...scores };
+			for (const [label, field] of Object.entries(SCORE_KEY_MAP)) {
+				const v = data.scored[label];
+				next[field] = typeof v === "number" ? v : null;
+			}
+			scores = next;
+		}
+
+		if (Array.isArray(data?.nonScored)) {
+			nonScored = data.nonScored
+				.filter((i: unknown): i is NonScoredItem =>
+					Boolean(i && typeof (i as NonScoredItem).name === "string"),
+				)
+				.map((i: NonScoredItem) => ({
+					name: i.name,
+					result: typeof i.result === "string" ? i.result : null,
+				}));
+		}
+
+		if (data?.ranks && typeof data.ranks === "object") {
+			const next = { ...ranks };
+			for (const [label, field] of Object.entries(RANK_KEY_MAP)) {
+				const v = data.ranks[label];
+				next[field] = typeof v === "number" ? v : null;
+			}
+			ranks = next;
+		}
+	} catch {
+		// 文件缺失或格式错误时保持全空，表格照常渲染为「—」
+	}
+}
+
+onMount(loadScoreboard);
 
 function display(value: number | string | null): string {
 	if (value === null || value === undefined || value === "") return "—";
@@ -73,7 +139,7 @@ $: artsTotal = sumNullable(scores.history, scores.politics);
 </script>
 
 <div class="scoreboard-module card-base">
-  <h3 class="module-title">中考</h3>
+  <h3 class="module-title">{title}</h3>
 
   <!-- 计分科目：弹性表格，无横向滚动 -->
   <div class="table-wrap">
@@ -148,9 +214,9 @@ $: artsTotal = sumNullable(scores.history, scores.politics);
     <table class="score-table plain-table rank-table">
       <thead>
         <tr>
-          <th>贵阳市排位</th>
-          <th>花溪区排位</th>
-          <th>所在学校配额生资格排位</th>
+          <th>市排名</th>
+          <th>区排名</th>
+          <th>校内指标</th>
         </tr>
       </thead>
       <tbody>
@@ -202,8 +268,18 @@ $: artsTotal = sumNullable(scores.history, scores.politics);
   .table-wrap {
     width: 100%;
     min-width: 0;
-    overflow: hidden;
+    /* 窄屏下 11 列表格挤成一团，让它自己横向滚动而不是压扁 */
+    overflow-x: auto;
+    overflow-y: hidden;
     border-radius: 0.5rem;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  @media (max-width: 640px) {
+    .scored-table {
+      table-layout: auto;
+      min-width: 34rem;
+    }
   }
 
   .score-table {
