@@ -19,6 +19,7 @@ import KeywordTooltip from "../../components/KeywordTooltip.svelte";
 import ImageWrapper from "../../components/misc/ImageWrapper.astro";
 import PostActions from "../../components/PostActions.svelte";
 import PostMetadata from "../../components/PostMeta.astro";
+import CommentCount from "../../components/CommentCount.astro";
 import PostSummary from "../../components/PostSummary.astro";
 import ReadingProgress from "../../components/ReadingProgress.astro";
 import RelatedPosts from "../../components/RelatedPosts.astro";
@@ -93,6 +94,9 @@ const jsonLd = {
                         {remarkPluginFrontmatter.minutes} {" " + i18n(remarkPluginFrontmatter.minutes === 1 ? I18nKey.minuteCount : I18nKey.minutesCount)}
                     </div>
                 </div>
+
+                <!-- 评论数：由 giscus 的 emit-metadata 回报后才显示 -->
+                <CommentCount />
             </div>
 
             <!-- title -->

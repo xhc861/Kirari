@@ -1,0 +1,96 @@
+---
+/**
+ * 文章头部的评论数。
+ *
+ * 数据来自 giscus：把 data-emit-metadata 打开后，iframe 会通过 postMessage
+ * 把讨论元数据（含评论总数）发给父页面，不需要任何鉴权。
+ *
+ * 局限：这条路只在文章页有效，因为计数依赖 giscus 的 iframe 已经加载。
+ * 列表页的卡片要显示评论数，得在构建期走 GitHub Discussions GraphQL API，
+ * 那需要一个 token。
+ */
+---
+
+<div id="comment-count" class="comment-count" hidden>
+    <div class="comment-count-icon" aria-hidden="true">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+        </svg>
+    </div>
+    <a href="#comment" class="comment-count-text">
+        <span id="comment-count-value">0</span> 条评论
+    </a>
+</div>
+
+<style>
+    .comment-count {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+    }
+    .comment-count[hidden] { display: none; }
+
+    .comment-count-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 1.5rem;
+        height: 1.5rem;
+        margin-right: 0.5rem;
+        border-radius: 0.375rem;
+        background: rgba(0, 0, 0, 0.05);
+        color: rgba(0, 0, 0, 0.5);
+        transition: background 0.2s ease;
+    }
+    :global(.dark) .comment-count-icon {
+        background: rgba(255, 255, 255, 0.1);
+        color: rgba(255, 255, 255, 0.5);
+    }
+
+    .comment-count-text {
+        font-size: 0.875rem;
+        color: inherit;
+        transition: color 0.2s ease;
+    }
+    .comment-count-text:hover { color: var(--primary); }
+
+    #comment-count-value {
+        font-variant-numeric: tabular-nums;
+        font-weight: 600;
+    }
+</style>
+
+<script is:inline>
+(() => {
+  if (window.__kirariCommentCount) return;
+  window.__kirariCommentCount = true;
+
+  function onMessage(event) {
+    if (event.origin !== "https://giscus.app") return;
+    const data = event.data;
+    if (!data || typeof data !== "object") return;
+    const discussion = data.giscus?.discussion;
+    if (!discussion) return;
+
+    // giscus 同时给出 totalCommentCount（不含回复）与 totalReplyCount
+    const total =
+      (discussion.totalCommentCount ?? 0) + (discussion.totalReplyCount ?? 0);
+
+    const box = document.getElementById("comment-count");
+    const value = document.getElementById("comment-count-value");
+    if (!box || !value) return;
+
+    value.textContent = String(total);
+    // 零评论时不显示 —— 与其挂一个「0 条评论」，不如不占位
+    box.hidden = total === 0;
+  }
+
+  window.addEventListener("message", onMessage);
+
+  // Swup 切页后计数属于上一篇，先藏起来等新的 giscus 回报
+  document.addEventListener("swup:page:view", () => {
+    const box = document.getElementById("comment-count");
+    if (box) box.hidden = true;
+  });
+})();
+</script>
