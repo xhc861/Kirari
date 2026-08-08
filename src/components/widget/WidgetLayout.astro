@@ -1,7 +1,7 @@
 ---
+import { getLangFromUrl, useTranslations } from "@i18n/utils";
 import { Icon } from "astro-icon/components";
 import I18nKey from "../../i18n/i18nKey";
-import { i18n } from "../../i18n/translation";
 
 interface Props {
 	id: string;
@@ -13,6 +13,9 @@ interface Props {
 }
 const { id, name, isCollapsed, collapsedHeight, style } = Astro.props;
 const className = Astro.props.class;
+
+// 语言由当前路由决定，组件直接从 Astro.url 推导，不必层层传 prop
+const t = useTranslations(getLangFromUrl(Astro.url));
 ---
 <widget-layout data-id={id} data-is-collapsed={String(isCollapsed)} class={"pb-4 card-base " + className} style={style}>
     <div class="font-bold transition text-lg text-neutral-900 dark:text-neutral-100 relative ml-8 mt-4 mb-2
@@ -24,7 +27,7 @@ const className = Astro.props.class;
     {isCollapsed && <div class="expand-btn px-4 -mb-2">
         <button class="btn-plain rounded-lg w-full h-9">
             <div class="text-[var(--primary)] flex items-center justify-center gap-2 -translate-x-2">
-                <Icon name="material-symbols:more-horiz" class="text-[1.75rem]"></Icon> {i18n(I18nKey.more)}
+                <Icon name="material-symbols:more-horiz" class="text-[1.75rem]"></Icon> {t(I18nKey.more)}
             </div>
         </button>
     </div>}

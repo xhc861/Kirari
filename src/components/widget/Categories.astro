@@ -1,6 +1,6 @@
 ---
+import { getLangFromUrl, useTranslations } from "@i18n/utils";
 import I18nKey from "../../i18n/i18nKey";
-import { i18n } from "../../i18n/translation";
 import { getCategoryList } from "../../utils/content-utils";
 import ButtonLink from "../control/ButtonLink.astro";
 import WidgetLayout from "./WidgetLayout.astro";
@@ -18,9 +18,12 @@ interface Props {
 }
 const className = Astro.props.class;
 const style = Astro.props.style;
+
+// 语言由当前路由决定，组件直接从 Astro.url 推导，不必层层传 prop
+const t = useTranslations(getLangFromUrl(Astro.url));
 ---
 
-<WidgetLayout name={i18n(I18nKey.categories)} id="categories" isCollapsed={isCollapsed} collapsedHeight={COLLAPSED_HEIGHT}
+<WidgetLayout name={t(I18nKey.categories)} id="categories" isCollapsed={isCollapsed} collapsedHeight={COLLAPSED_HEIGHT}
                 class={className} style={style}
 >
     {categories.map((c) =>
