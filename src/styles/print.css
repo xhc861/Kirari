@@ -283,4 +283,57 @@
     break-after: avoid;
     page-break-after: avoid;
   }
+
+  /*
+   * 分页截断的根因：主内容区放在 position: absolute 的容器里
+   * （MainGridLayout 用 absolute + top 定位面板）。绝对定位元素在打印时
+   * 只渲染第一页，后面的内容会被整段丢掉 —— 这就是「有内容没截到」。
+   * 打印时必须把整条链路拍回普通文档流。
+   */
+  #app-root,
+  #app-root > div,
+  #main-grid,
+  #swup-container,
+  #content-wrapper,
+  #post-container,
+  main {
+    position: static !important;
+    top: auto !important;
+    left: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    transform: none !important;
+    width: auto !important;
+    max-width: 100% !important;
+    height: auto !important;
+    max-height: none !important;
+    /* overflow 一旦裁剪，超出部分同样印不出来 */
+    overflow: visible !important;
+  }
+
+  /* 网格布局在纸上没有意义，拍平成单栏 */
+  #main-grid {
+    display: block !important;
+    grid-template-columns: none !important;
+  }
+
+  /* 入场动画会让元素停在 opacity:0，打印出来是空白 */
+  .onload-animation,
+  [class*="onload"] {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  /* 折叠容器在纸上应完整展开 */
+  .collapsed {
+    height: auto !important;
+    max-height: none !important;
+  }
+  details {
+    display: block !important;
+  }
+  details > *:not(summary) {
+    display: revert !important;
+  }
 }
