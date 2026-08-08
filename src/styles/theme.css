@@ -24,6 +24,26 @@
 	@apply transition rounded-md p-1.5 -m-1.5 expand-animation;
 }
 
+/*
+ * 文字不透明度阶梯。组件的 scoped <style> 里会 @apply 这几个类，
+ * 所以必须注册成 @utility —— @layer components 里的类在 v4 下不是真 utility。
+ */
+@utility text-90 {
+	@apply text-black/90 dark:text-white/90;
+}
+@utility text-75 {
+	@apply text-black/75 dark:text-white/75;
+}
+@utility text-50 {
+	@apply text-black/50 dark:text-white/50;
+}
+@utility text-30 {
+	@apply text-black/30 dark:text-white/30;
+}
+@utility text-25 {
+	@apply text-black/25 dark:text-white/25;
+}
+
 @utility btn-regular-dark {
 	@apply flex items-center justify-center
 	bg-[oklch(0.45_0.01_var(--hue))] hover:bg-[oklch(0.50_0.01_var(--hue))] active:bg-[oklch(0.55_0.01_var(--hue))]
