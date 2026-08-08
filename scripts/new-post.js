@@ -46,11 +46,16 @@ const content = `---
 title: ${args[0]}
 published: ${getDate()}
 description: ''
+# 文章顶部「太长不看」的简述，一两句话说清这篇讲了什么
+summary: ''
 image: ''
 tags: []
 category: ''
-draft: false 
+draft: false
 lang: ''
+# 属于某个系列时填写，同系列文章会在文章页互相串联
+# series: ''
+# order: 1
 ---
 `
 

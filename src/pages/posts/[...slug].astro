@@ -1,6 +1,5 @@
 ---
 import path from "node:path";
-import AISummary from "@components/AISummary.svelte";
 import License from "@components/misc/License.astro";
 import Markdown from "@components/misc/Markdown.astro";
 import I18nKey from "@i18n/i18nKey";
@@ -16,6 +15,7 @@ import KeywordTooltip from "../../components/KeywordTooltip.svelte";
 import ImageWrapper from "../../components/misc/ImageWrapper.astro";
 import PostActions from "../../components/PostActions.svelte";
 import PostMetadata from "../../components/PostMeta.astro";
+import PostSummary from "../../components/PostSummary.astro";
 import ReadingSettings from "../../components/ReadingSettings.svelte";
 import { profileConfig, siteConfig } from "../../config";
 import { formatDateToYYYYMMDD } from "../../utils/date-utils";
@@ -105,8 +105,8 @@ const jsonLd = {
                 <ReadingSettings client:load />
             </div>
 
-            <!-- AI 智能总结 -->
-            <AISummary client:load content={entry.body ?? ""} title={entry.data.title} />
+            <!-- 文章简述（frontmatter 的 summary 字段，构建期渲染） -->
+            <PostSummary summary={entry.data.summary} />
 
             <!-- always show cover as long as it has one -->
 
