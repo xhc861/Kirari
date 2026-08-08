@@ -86,11 +86,6 @@ export const profileConfig: ProfileConfig = {
 			url: "https://www.twitch.tv/xhc861",
 		},
 		{
-			name: "Telegram被盗号，等待恢复",
-			icon: "fa6-brands:telegram",
-			url: "#",
-		},
-		{
 			name: "Mail",
 			icon: "fa6-solid:envelope",
 			url: "/webpage/mail.html",
