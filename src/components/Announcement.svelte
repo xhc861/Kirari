@@ -66,7 +66,7 @@ function closeAnnouncement() {
         <div class="announcement-container rounded-[var(--radius-large)] shadow-lg overflow-hidden border-2 border-[oklch(0.75_0.1_var(--hue))]">
             <div class="announcement-content p-4 md:p-5 flex items-start gap-3 md:gap-4">
                 {#if config.icon}
-                    <div class="announcement-icon flex-shrink-0 mt-0.5">
+                    <div class="announcement-icon shrink-0 mt-0.5">
                         <Icon icon={config.icon} class="text-2xl md:text-3xl text-[oklch(0.75_0.14_var(--hue))]" />
                     </div>
                 {/if}
@@ -102,7 +102,7 @@ function closeAnnouncement() {
                 {#if config.closeable}
                     <button
                         on:click={closeAnnouncement}
-                        class="announcement-close flex-shrink-0 p-1 rounded-lg hover:bg-[var(--btn-plain-bg-hover)] transition-colors"
+                        class="announcement-close shrink-0 p-1 rounded-lg hover:bg-[var(--btn-plain-bg-hover)] transition-colors"
                         class:critical-text={config.critical}
                         class:normal-text={!config.critical}
                         aria-label="关闭公告"

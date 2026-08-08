@@ -70,13 +70,13 @@ onMount(() => {
 			class="pointer-events-auto animate-in fade-in slide-in-from-right-4 duration-300 flex items-start gap-3 p-4 rounded-lg border-l-4 shadow-lg {typeStyles[notification.type]}"
 			role="alert"
 		>
-			<Icon icon={typeIcons[notification.type]} class="text-xl flex-shrink-0 mt-0.5" />
+			<Icon icon={typeIcons[notification.type]} class="text-xl shrink-0 mt-0.5" />
 			<div class="flex-1">
 				<p class="text-sm font-medium">{notification.message}</p>
 			</div>
 			<button
 				on:click={() => removeNotification(notification.id)}
-				class="flex-shrink-0 text-lg hover:opacity-70 transition-opacity"
+				class="shrink-0 text-lg hover:opacity-70 transition-opacity"
 				aria-label="关闭通知"
 			>
 				<Icon icon="fa6-solid:xmark" />

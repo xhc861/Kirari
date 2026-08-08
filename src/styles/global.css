@@ -1,0 +1,17 @@
+/*
+ * 全站样式入口（Tailwind v4）
+ *
+ * v4 不再使用 `@tailwind base/components/utilities` 三件套，改为单个 `@import`。
+ * 主题（darkMode / fontFamily / typography 插件）仍沿用 JS 配置，通过 `@config` 加载。
+ *
+ * 组件与页面的 scoped <style> 若要用 @apply，需在块内先写 `@reference "..../global.css";`
+ */
+@import "tailwindcss";
+@import "./main.css";
+@import "./markdown.css";
+@import "./scrollbar.css";
+@import "./transition.css";
+@import "./photoswipe.css";
+@import "./expressive-code.css";
+
+@config "../../tailwind.config.mjs";
