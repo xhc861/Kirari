@@ -26,7 +26,7 @@ function formatDateTime(dateStr: string, timeStr?: string): string {
 
 onMount(async () => {
 	try {
-		const response = await fetch("/micro-news.json");
+		const response = await fetch("/micro-news.json", { cache: "no-store" });
 		const data: MicroNews[] = await response.json();
 
 		if (data && data.length > 0) {

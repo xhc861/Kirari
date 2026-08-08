@@ -10,7 +10,7 @@ let currentTooltip: HTMLElement | null = null;
 onMount(async () => {
 	// 加载知识库
 	try {
-		const response = await fetch("/glossary.json");
+		const response = await fetch("/glossary.json", { cache: "no-store" });
 		const data = await response.json();
 		glossary = data.keywords;
 
@@ -138,11 +138,9 @@ function processArticleContent() {
 	const articleContent = document.querySelector(".markdown-content");
 
 	if (!articleContent) {
-		console.log("Article content not found");
 		return;
 	}
 
-	console.log("Processing article content, keywords:", Object.keys(glossary));
 
 	// 获取所有段落和标题
 	const elements = articleContent.querySelectorAll(
@@ -153,10 +151,6 @@ function processArticleContent() {
 		processElement(element);
 	});
 
-	console.log(
-		"Found highlights:",
-		document.querySelectorAll(".keyword-highlight").length,
-	);
 }
 
 function processElement(element: Element) {

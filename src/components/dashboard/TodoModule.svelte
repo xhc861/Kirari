@@ -23,12 +23,9 @@ let mockTodos: TodoItem[] = [];
 
 // 从 JSON 文件动态加载待办事项
 async function loadTodos() {
-	console.log("[TodoModule] 开始加载待办事项...");
 	try {
-		const response = await fetch("/todos.json");
-		console.log("[TodoModule] fetch 响应:", response.status);
+		const response = await fetch("/todos.json", { cache: "no-store" });
 		mockTodos = await response.json();
-		console.log("[TodoModule] 加载的数据:", mockTodos);
 	} catch (error) {
 		console.error("[TodoModule] 加载失败:", error);
 		mockTodos = [];

@@ -29,7 +29,7 @@ function getContentHash(str: string): string {
 onMount(async () => {
 	// 从 JSON 文件加载公告配置
 	try {
-		const response = await fetch("/announcement.json");
+		const response = await fetch("/announcement.json", { cache: "no-store" });
 		config = await response.json();
 
 		if (!config || !config.enable) {
