@@ -1,186 +1,185 @@
 <script lang="ts">
-interface SubjectScore {
-	id: string;
-	subject: string;
-	score: number | null;
-	fullScore: number;
-	schoolRank: number | null;
-	districtRank: number | null;
-	cityRank: number | null;
+/** 计分科目成绩（全部未公布时为 null） */
+interface ScoredSubjects {
+	total: number | null;
+	chinese: number | null;
+	math: number | null;
+	englishWritten: number | null;
+	englishListening: number | null;
+	physics: number | null;
+	chemistry: number | null;
+	history: number | null;
+	politics: number | null;
+	pe: number | null;
+	policyBonus: number | null;
 }
 
-const mockScores: SubjectScore[] = [
-	{
-		id: "1",
-		subject: "语文",
-		score: 121,
-		fullScore: 150,
-		schoolRank: 224,
-		districtRank: 1340,
-		cityRank: 4181,
-	},
-	{
-		id: "2",
-		subject: "数学",
-		score: 140,
-		fullScore: 150,
-		schoolRank: 49,
-		districtRank: 239,
-		cityRank: 991,
-	},
-	{
-		id: "3",
-		subject: "英语",
-		score: 77.5,
-		fullScore: 90,
-		schoolRank: 53,
-		districtRank: 311,
-		cityRank: 1709,
-	},
-	{
-		id: "4",
-		subject: "物理",
-		score: 73,
-		fullScore: 90,
-		schoolRank: 165,
-		districtRank: 731,
-		cityRank: 9204,
-	},
-	{
-		id: "5",
-		subject: "化学",
-		score: 43,
-		fullScore: 60,
-		schoolRank: 311,
-		districtRank: 1471,
-		cityRank: 14030,
-	},
-	{
-		id: "6",
-		subject: "政治",
-		score: 54,
-		fullScore: 70,
-		schoolRank: 244,
-		districtRank: 1476,
-		cityRank: 14257,
-	},
-	{
-		id: "7",
-		subject: "历史",
-		score: 45,
-		fullScore: 60,
-		schoolRank: 132,
-		districtRank: 670,
-		cityRank: 7633,
-	},
+/** 非计分科目：等级或合格类结果 */
+interface NonScoredItem {
+	name: string;
+	result: string | null;
+}
+
+interface RankInfo {
+	city: number | null;
+	district: number | null;
+	schoolQuota: number | null;
+}
+
+const scores: ScoredSubjects = {
+	total: null,
+	chinese: null,
+	math: null,
+	englishWritten: null,
+	englishListening: null,
+	physics: null,
+	chemistry: null,
+	history: null,
+	politics: null,
+	pe: 50,
+	policyBonus: null,
+};
+
+const nonScored: NonScoredItem[] = [
+	{ name: "生物", result: "A" },
+	{ name: "地理", result: "A" },
+	{ name: "信息技术", result: "A" },
+	{ name: "音乐", result: "A" },
+	{ name: "美术", result: "A" },
+	{ name: "物理实验", result: "合格" },
+	{ name: "化学实验", result: "合格" },
+	{ name: "生物实验", result: "合格" },
 ];
 
-// 计算总分
-const totalScore = mockScores.reduce((sum, item) => sum + (item.score || 0), 0);
-const totalFullScore = mockScores.reduce(
-	(sum, item) => sum + item.fullScore,
-	0,
-);
-const hasScores = mockScores.some((item) => item.score !== null);
-
-// 总排名
-const overallRanks = {
-	school: 99,
-	district: 509,
-	city: 3512,
+const ranks: RankInfo = {
+	city: null,
+	district: null,
+	schoolQuota: null,
 };
+
+function display(value: number | string | null): string {
+	if (value === null || value === undefined || value === "") return "—";
+	return String(value);
+}
+
+function sumNullable(...vals: (number | null)[]): number | null {
+	if (vals.some((v) => v === null)) return null;
+	return vals.reduce<number>((a, b) => a + (b as number), 0);
+}
+
+$: englishTotal = sumNullable(scores.englishWritten, scores.englishListening);
+$: scienceTotal = sumNullable(scores.physics, scores.chemistry);
+$: artsTotal = sumNullable(scores.history, scores.politics);
 </script>
 
 <div class="scoreboard-module card-base">
-  <h3 class="module-title">贵阳市2026届九年级期末考试</h3>
-  
-  <!-- 总分区域 -->
-  <div class="total-score-section">
-    <div class="total-score-card">
-      <div class="total-label">总分</div>
-      <div class="total-value">
-        {#if hasScores}
-          <span class="score">{totalScore}</span>
-          <span class="divider">/</span>
-          <span class="full-score">{totalFullScore}</span>
-        {:else}
-          <span class="unpublished-text">未公布</span>
-        {/if}
-      </div>
-    </div>
-    
-    <!-- 总排名 -->
-    {#if hasScores}
-      <div class="overall-ranks">
-        <div class="rank-badge">
-          <span class="rank-label">校</span>
-          <span class="rank-num">{overallRanks.school || '-'}</span>
-        </div>
-        <div class="rank-badge">
-          <span class="rank-label">区</span>
-          <span class="rank-num">{overallRanks.district || '-'}</span>
-        </div>
-        <div class="rank-badge">
-          <span class="rank-label">市</span>
-          <span class="rank-num">{overallRanks.city || '-'}</span>
-        </div>
-      </div>
-    {/if}
+  <h3 class="module-title">中考</h3>
+
+  <!-- 计分科目：弹性表格，无横向滚动 -->
+  <div class="table-wrap">
+    <table class="score-table scored-table">
+      <thead>
+        <tr class="group-row">
+          <th rowspan="2">总分</th>
+          <th rowspan="2">语文</th>
+          <th rowspan="2">数学</th>
+          <th colspan="2">英语</th>
+          <th colspan="2">综合理科</th>
+          <th colspan="2">综合文科</th>
+          <th rowspan="2">体育与健康</th>
+          <th rowspan="2">政策性加分</th>
+        </tr>
+        <tr class="sub-row">
+          <th>笔试</th>
+          <th>听说</th>
+          <th>物理</th>
+          <th>化学</th>
+          <th>历史</th>
+          <th>道德与法治</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="value-row">
+          <td rowspan="2" class="total-cell">{display(scores.total)}</td>
+          <td rowspan="2">{display(scores.chinese)}</td>
+          <td rowspan="2">{display(scores.math)}</td>
+          <td>{display(scores.englishWritten)}</td>
+          <td>{display(scores.englishListening)}</td>
+          <td>{display(scores.physics)}</td>
+          <td>{display(scores.chemistry)}</td>
+          <td>{display(scores.history)}</td>
+          <td>{display(scores.politics)}</td>
+          <td rowspan="2">{display(scores.pe)}</td>
+          <td rowspan="2">{display(scores.policyBonus)}</td>
+        </tr>
+        <tr class="subtotal-row">
+          <td colspan="2">{display(englishTotal)}</td>
+          <td colspan="2">{display(scienceTotal)}</td>
+          <td colspan="2">{display(artsTotal)}</td>
+        </tr>
+      </tbody>
+    </table>
   </div>
 
-  <!-- 科目分数表格 -->
-  <div class="score-table">
-    <div class="table-header">
-      <div class="col-subject">科目</div>
-      <div class="col-score">分数</div>
-      <div class="col-rank">校排名</div>
-      <div class="col-rank">区排名</div>
-      <div class="col-rank">市排名</div>
-    </div>
-    
-    <div class="table-body">
-      {#each mockScores as item (item.id)}
-        <div class="table-row" class:has-score={item.score !== null}>
-          <div class="col-subject">
-            <span class="subject-name">{item.subject}</span>
-          </div>
-          <div class="col-score">
-            {#if item.score !== null}
-              <span class="score-value">{item.score}</span>
-              <span class="score-divider">/</span>
-              <span class="full-score-value">{item.fullScore}</span>
-            {:else}
-              <span class="unpublished">-</span>
-            {/if}
-          </div>
-          <div class="col-rank">
-            <span class="rank-value">{item.schoolRank || '-'}</span>
-          </div>
-          <div class="col-rank">
-            <span class="rank-value">{item.districtRank || '-'}</span>
-          </div>
-          <div class="col-rank">
-            <span class="rank-value">{item.cityRank || '-'}</span>
-          </div>
-        </div>
-      {/each}
-    </div>
+  <!-- 非计分科目 -->
+  <h4 class="section-label">非计分科目</h4>
+  <div class="table-wrap">
+    <table class="score-table plain-table">
+      <thead>
+        <tr>
+          {#each nonScored as item (item.name)}
+            <th>{item.name}</th>
+          {/each}
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          {#each nonScored as item (item.name)}
+            <td>{display(item.result)}</td>
+          {/each}
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 排位（不含综合素质评价） -->
+  <h4 class="section-label">排位</h4>
+  <div class="table-wrap">
+    <table class="score-table plain-table rank-table">
+      <thead>
+        <tr>
+          <th>贵阳市排位</th>
+          <th>花溪区排位</th>
+          <th>所在学校配额生资格排位</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>{display(ranks.city)}</td>
+          <td>{display(ranks.district)}</td>
+          <td>{display(ranks.schoolQuota)}</td>
+        </tr>
+      </tbody>
+    </table>
   </div>
 </div>
 
 <style>
   .scoreboard-module {
-    padding: 1.5rem;
+    padding: clamp(0.75rem, 1.5vw, 1.25rem) clamp(0.65rem, 1.2vw, 1.25rem);
     border-radius: var(--radius-large);
     height: 100%;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
     display: flex;
     flex-direction: column;
   }
 
   .module-title {
-    font-size: 1.25rem;
+    font-size: clamp(1.05rem, 1.5vw, 1.25rem);
     font-weight: 600;
-    margin-bottom: 1rem;
+    margin-bottom: 0.75rem;
     color: var(--primary);
   }
 
@@ -188,239 +187,131 @@ const overallRanks = {
     color: oklch(0.75 0.14 var(--hue));
   }
 
-  /* 总分区域 */
-  .total-score-section {
-    display: flex;
-    gap: 0.75rem;
-    margin-bottom: 1rem;
-    flex-wrap: wrap;
-  }
-
-  .total-score-card {
-    flex: 1;
-    min-width: 150px;
-    padding: 1rem;
-    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark, var(--primary)) 100%);
-    border-radius: 0.75rem;
-    color: white;
-    text-align: center;
-  }
-
-  .total-label {
-    font-size: 0.75rem;
+  .section-label {
+    font-size: clamp(0.8rem, 1.2vw, 0.9rem);
+    font-weight: 500;
+    margin: 1rem 0 0.5rem;
+    color: var(--primary);
     opacity: 0.9;
-    margin-bottom: 0.25rem;
   }
 
-  .total-value {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: white;
+  :global(.dark) .section-label {
+    color: oklch(0.75 0.14 var(--hue));
   }
 
-  .total-value .score {
-    color: white;
-  }
-
-  .total-value .divider {
-    margin: 0 0.25rem;
-    opacity: 0.7;
-  }
-
-  .total-value .full-score {
-    font-size: 1.125rem;
-    opacity: 0.8;
-  }
-
-  .unpublished-text {
-    font-size: 1.25rem;
-  }
-
-  .overall-ranks {
-    display: flex;
-    gap: 0.5rem;
-    align-items: center;
-  }
-
-  .rank-badge {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 0.5rem 0.75rem;
-    background: var(--card-bg);
-    border-radius: 0.5rem;
-    min-width: 60px;
-  }
-
-  .rank-label {
-    font-size: 0.7rem;
-    opacity: 0.7;
-    margin-bottom: 0.125rem;
-  }
-
-  :global(.dark) .rank-label {
-    color: rgba(255, 255, 255, 0.8);
-  }
-
-  .rank-num {
-    font-size: 1.125rem;
-    font-weight: 700;
-    color: var(--primary);
-  }
-
-  /* 表格样式 */
-  .score-table {
-    border-radius: 0.5rem;
+  .table-wrap {
+    width: 100%;
+    min-width: 0;
     overflow: hidden;
+    border-radius: 0.5rem;
+  }
+
+  .score-table {
+    width: 100%;
+    max-width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+    font-size: clamp(0.62rem, 1.05vw, 0.8125rem);
+    background: var(--card-bg);
     border: 1px solid var(--line-divider);
-    flex: 1;
-    overflow-y: auto;
   }
 
-  .table-header {
-    display: grid;
-    grid-template-columns: 1.2fr 1.2fr 0.9fr 0.9fr 0.9fr;
-    background: var(--card-bg);
-    font-weight: 600;
-    font-size: 0.8rem;
-    border-bottom: 2px solid var(--line-divider);
-    position: sticky;
-    top: 0;
-    z-index: 1;
-  }
-
-  .table-header > div {
-    padding: 0.625rem 0.5rem;
+  .score-table th,
+  .score-table td {
+    border: 1px solid var(--line-divider);
+    padding: clamp(0.28rem, 0.7vw, 0.5rem) clamp(0.12rem, 0.4vw, 0.3rem);
     text-align: center;
+    vertical-align: middle;
+    /* 允许表头换行以塞进容器，数值尽量不换行 */
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    line-height: 1.25;
+    hyphens: auto;
   }
 
-  :global(.dark) .table-header > div {
-    color: rgba(255, 255, 255, 0.9);
+  .value-row td,
+  .subtotal-row td,
+  .plain-table tbody td {
+    white-space: nowrap;
+    overflow-wrap: normal;
+    word-break: normal;
   }
 
-  .table-body .col-subject {
-    text-align: left !important;
-    padding-left: 0.75rem !important;
-  }
-
-  .table-body {
-    background: var(--card-bg);
-  }
-
-  .table-row {
-    display: grid;
-    grid-template-columns: 1.2fr 1.2fr 0.9fr 0.9fr 0.9fr;
-    border-bottom: 1px solid var(--line-divider);
-    transition: background 0.2s;
-  }
-
-  .table-row:last-child {
-    border-bottom: none;
-  }
-
-  .table-row:hover {
-    background: var(--btn-card-bg-hover);
-  }
-
-  .table-row > div {
-    padding: 0.625rem 0.5rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.875rem;
-  }
-
-  .subject-name {
-    font-weight: 500;
-  }
-
-  :global(.dark) .subject-name {
-    color: rgba(255, 255, 255, 0.9);
-  }
-
-  .col-score {
-    font-size: 0.875rem;
-  }
-  
-  :global(.dark) .col-score {
-    color: rgba(255, 255, 255, 0.9);
-  }
-
-  .score-value {
+  .score-table thead th {
+    background: color-mix(in oklab, var(--card-bg) 92%, var(--primary) 8%);
     font-weight: 600;
-    color: var(--primary);
+    color: inherit;
+    opacity: 0.95;
   }
 
-  .score-divider {
-    margin: 0 0.2rem;
-    opacity: 0.5;
-  }
-  
-  :global(.dark) .score-divider {
-    color: rgba(255, 255, 255, 0.6);
-    opacity: 1;
+  :global(.dark) .score-table thead th {
+    background: color-mix(in oklab, var(--card-bg) 85%, white 8%);
+    color: rgba(255, 255, 255, 0.9);
   }
 
-  .full-score-value {
-    opacity: 0.6;
-    font-size: 0.8rem;
-  }
-  
-  :global(.dark) .full-score-value {
-    color: rgba(255, 255, 255, 0.7);
-    opacity: 1;
+  .group-row th {
+    font-size: clamp(0.62rem, 1.05vw, 0.8125rem);
   }
 
-  .unpublished {
-    opacity: 0.4;
-  }
-  
-  :global(.dark) .unpublished {
-    color: rgba(255, 255, 255, 0.5);
-    opacity: 1;
-  }
-
-  .rank-value {
+  .sub-row th {
+    font-size: clamp(0.58rem, 0.95vw, 0.75rem);
     font-weight: 500;
-    font-size: 0.875rem;
+    opacity: 0.85;
   }
 
-  :global(.dark) .rank-value {
-    color: rgba(255, 255, 255, 0.8);
+  .value-row td,
+  .subtotal-row td,
+  .plain-table tbody td {
+    color: inherit;
+    opacity: 0.85;
   }
 
-  .table-row.has-score .rank-value {
+  .total-cell {
+    font-weight: 700;
     color: var(--primary);
+    opacity: 1 !important;
   }
 
-  /* 响应式设计 */
-  @media (max-width: 768px) {
-    .table-header,
-    .table-row {
-      grid-template-columns: 1.2fr 1.2fr 0.8fr 0.8fr 0.8fr;
-      font-size: 0.875rem;
+  :global(.dark) .total-cell {
+    color: oklch(0.78 0.14 var(--hue));
+  }
+
+  .subtotal-row td {
+    font-weight: 500;
+    background: color-mix(in oklab, var(--card-bg) 96%, var(--primary) 4%);
+  }
+
+  :global(.dark) .subtotal-row td {
+    background: color-mix(in oklab, var(--card-bg) 90%, white 5%);
+  }
+
+  :global(.dark) .score-table td {
+    color: rgba(255, 255, 255, 0.85);
+  }
+
+  /* 窄屏进一步压缩字号与内边距 */
+  @media (max-width: 640px) {
+    .scoreboard-module {
+      padding: 0.75rem 0.5rem;
     }
 
-    .table-header > div,
-    .table-row > div {
-      padding: 0.5rem 0.25rem;
+    .score-table {
+      font-size: 0.58rem;
     }
 
-    .col-subject {
-      padding-left: 0.5rem !important;
+    .score-table th,
+    .score-table td {
+      padding: 0.22rem 0.08rem;
     }
 
-    .total-value {
-      font-size: 1.5rem;
+    .sub-row th {
+      font-size: 0.54rem;
     }
+  }
 
-    .rank-badge {
-      min-width: 60px;
-      padding: 0.5rem 0.75rem;
-    }
-
-    .rank-num {
-      font-size: 1.25rem;
+  @media (min-width: 641px) and (max-width: 1023px) {
+    .score-table {
+      font-size: clamp(0.68rem, 1.4vw, 0.8rem);
     }
   }
 </style>

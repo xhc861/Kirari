@@ -5,15 +5,15 @@
   let confettiEnabled = true;
   let particlesEnabled = true;
   let shootingStarsEnabled = true;
-  let lanternsEnabled = false;  // 默认关闭灯笼
+  let lanternsEnabled = true;  // 默认开启灯笼与横幅
   let grayscaleEnabled = false;
   
-  // 灯笼文字
+  // 灯笼文字（默认：中考大捷）
   let lanternText = {
-    text1: '元',
-    text2: '旦',
-    text3: '快',
-    text4: '乐'
+    text1: '中',
+    text2: '考',
+    text3: '大',
+    text4: '捷'
   };
   
   // 导航栏设置
@@ -33,7 +33,7 @@
   
   let activeTab: 'effects' | 'music' | 'navbar' = 'effects';
   
-  const VERSION = '0.9.6 Wanna';
+  const VERSION = '1.0.0';
   
   onMount(() => {
     loadSettings();
@@ -53,19 +53,29 @@
   
   function loadSettings() {
     const saved = localStorage.getItem('effectsSettings');
+    // 一次性迁移：默认打开灯笼并设为「中考大捷」
+    const migrated = localStorage.getItem('lanternDefaultsZhongkao');
     if (saved) {
       const settings = JSON.parse(saved);
       confettiEnabled = settings.confettiEnabled ?? true;
       particlesEnabled = settings.particlesEnabled ?? true;
       shootingStarsEnabled = settings.shootingStarsEnabled ?? true;
-      lanternsEnabled = settings.lanternsEnabled ?? false;
       grayscaleEnabled = settings.grayscaleEnabled ?? false;
-      if (settings.lanternText) {
-        lanternText = settings.lanternText;
+      if (!migrated) {
+        lanternsEnabled = true;
+        lanternText = { text1: '中', text2: '考', text3: '大', text4: '捷' };
+        localStorage.setItem('lanternDefaultsZhongkao', '1');
+      } else {
+        lanternsEnabled = settings.lanternsEnabled ?? true;
+        if (settings.lanternText) {
+          lanternText = settings.lanternText;
+        }
       }
       if (settings.navbarLinks) {
         navbarLinks = settings.navbarLinks;
       }
+    } else if (!migrated) {
+      localStorage.setItem('lanternDefaultsZhongkao', '1');
     }
     
     // 加载音乐播放列表
@@ -247,6 +257,7 @@
                   <input type="text" bind:value={lanternText.text4} on:input={updateLanternText} maxlength="1" placeholder="字4" />
                 </div>
                 <div class="lantern-presets">
+                  <button on:click={() => { lanternText = {text1:'中',text2:'考',text3:'大',text4:'捷'}; updateLanternText(); }}>中考大捷</button>
                   <button on:click={() => { lanternText = {text1:'新',text2:'年',text3:'快',text4:'乐'}; updateLanternText(); }}>新年</button>
                   <button on:click={() => { lanternText = {text1:'春',text2:'节',text3:'快',text4:'乐'}; updateLanternText(); }}>春节</button>
                   <button on:click={() => { lanternText = {text1:'中',text2:'秋',text3:'快',text4:'乐'}; updateLanternText(); }}>中秋</button>

@@ -3,11 +3,11 @@ import "@fontsource/roboto/400.css";
 import "@fontsource/roboto/500.css";
 import "@fontsource/roboto/700.css";
 
+import CelebrationBanner from "@components/CelebrationBanner.svelte";
 import ConfigCarrier from "@components/ConfigCarrier.astro";
 import MusicPlayerWrapper from "@components/MusicPlayerWrapper.astro";
 import Notification from "@components/Notification.svelte";
 import SpecialEffects from "@components/SpecialEffects.astro";
-import SplashScreen from "@components/SplashScreen.svelte";
 import { profileConfig, siteConfig } from "@/config";
 import {
 	AUTO_MODE,
@@ -156,15 +156,20 @@ const bannerOffset =
 	<body class=" min-h-screen transition " class:list={[{"lg:is-home": isHomePage, "enable-banner": enableBanner}]}
 		  data-overlayscrollbars-initialize
 	>
-		<SplashScreen client:only="svelte" />
-		<ConfigCarrier></ConfigCarrier>
-		<!-- @ts-ignore -->
-		<slot /><Notification client:only="svelte"></Notification>
-		<MusicPlayerWrapper />
-		<SpecialEffects />
+		<!-- 全宽庆典横幅：文档流最上方，网页主体在其下方（非遮罩） -->
+		<CelebrationBanner client:load show={true} text1="中" text2="考" text3="大" text4="捷" />
 
-		<!-- increase the page height during page transition to prevent the scrolling animation from jumping -->
-		<div id="page-height-extend" class="hidden h-[300vh]"></div>
+		<!-- 相对定位根：内部 absolute 布局从横幅下方起算 -->
+		<div id="app-root" class="relative min-h-screen w-full">
+			<ConfigCarrier></ConfigCarrier>
+			<!-- @ts-ignore -->
+			<slot /><Notification client:only="svelte"></Notification>
+			<MusicPlayerWrapper />
+			<SpecialEffects />
+
+			<!-- increase the page height during page transition to prevent the scrolling animation from jumping -->
+			<div id="page-height-extend" class="hidden h-[300vh]"></div>
+		</div>
 	</body>
 </html>
 

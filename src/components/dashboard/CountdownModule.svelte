@@ -7,43 +7,43 @@ interface Countdown {
 	targetDate: string;
 }
 
-let countdowns: Countdown[] = [];
+/** 由父组件传入；若未传入则自行加载 */
+export let countdowns: Countdown[] | undefined = undefined;
+
+let items: Countdown[] = [];
 let remainingDays: { [key: string]: number } = {};
 
-// 从 JSON 文件动态加载倒计时数据
 async function loadCountdowns() {
-	console.log("[CountdownModule] 开始加载倒计时数据...");
 	try {
 		const response = await fetch("/countdowns.json");
-		console.log("[CountdownModule] fetch 响应:", response.status);
 		const data = await response.json();
-		console.log("[CountdownModule] 加载的数据:", data);
-		countdowns = data;
+		items = Array.isArray(data) ? data : [];
 		calculateRemainingDays();
-		console.log(
-			"[CountdownModule] 倒计时数据加载成功，共",
-			countdowns.length,
-			"项",
-		);
 	} catch (error) {
 		console.error("[CountdownModule] 加载失败:", error);
-		countdowns = [];
+		items = [];
 	}
 }
 
-// 计算剩余天数
 function calculateRemainingDays() {
 	const today = new Date();
 	today.setHours(0, 0, 0, 0);
 
-	countdowns.forEach((countdown) => {
+	const next: { [key: string]: number } = {};
+	items.forEach((countdown) => {
 		const target = new Date(countdown.targetDate);
 		target.setHours(0, 0, 0, 0);
 		const diff = Math.ceil(
 			(target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
 		);
-		remainingDays[countdown.id] = diff;
+		next[countdown.id] = diff;
 	});
+	remainingDays = next;
+}
+
+$: if (countdowns !== undefined) {
+	items = countdowns;
+	calculateRemainingDays();
 }
 
 function formatDays(days: number): string {
@@ -57,45 +57,47 @@ function formatDays(days: number): string {
 }
 
 onMount(() => {
-	console.log("[CountdownModule] onMount 被调用");
-	// 确保在客户端执行
-	if (typeof window !== "undefined") {
-		console.log("[CountdownModule] 在客户端环境，开始加载数据");
-		loadCountdowns();
-
-		// 每天午夜更新一次
-		const now = new Date();
-		const tomorrow = new Date(
-			now.getFullYear(),
-			now.getMonth(),
-			now.getDate() + 1,
-		);
-		const msUntilMidnight = tomorrow.getTime() - now.getTime();
-
-		setTimeout(() => {
-			calculateRemainingDays();
-			// 之后每24小时更新一次
-			setInterval(calculateRemainingDays, 24 * 60 * 60 * 1000);
-		}, msUntilMidnight);
-	} else {
-		console.log("[CountdownModule] 不在客户端环境");
+	if (countdowns !== undefined) {
+		return;
 	}
+	if (typeof window === "undefined") {
+		return;
+	}
+
+	loadCountdowns();
+
+	const now = new Date();
+	const tomorrow = new Date(
+		now.getFullYear(),
+		now.getMonth(),
+		now.getDate() + 1,
+	);
+	const msUntilMidnight = tomorrow.getTime() - now.getTime();
+
+	const midnightTimer = setTimeout(() => {
+		calculateRemainingDays();
+		setInterval(calculateRemainingDays, 24 * 60 * 60 * 1000);
+	}, msUntilMidnight);
+
+	return () => clearTimeout(midnightTimer);
 });
 </script>
 
-<div class="countdown-module">
-  <div class="countdown-list">
-    {#each countdowns as countdown (countdown.id)}
-      <div class="countdown-item">
-        <div class="countdown-name">{countdown.name}</div>
-        <div class="countdown-days" class:past={remainingDays[countdown.id] < 0} class:today={remainingDays[countdown.id] === 0}>
-          {formatDays(remainingDays[countdown.id])}
+{#if items.length > 0}
+  <div class="countdown-module">
+    <div class="countdown-list">
+      {#each items as countdown (countdown.id)}
+        <div class="countdown-item">
+          <div class="countdown-name">{countdown.name}</div>
+          <div class="countdown-days" class:past={remainingDays[countdown.id] < 0} class:today={remainingDays[countdown.id] === 0}>
+            {formatDays(remainingDays[countdown.id])}
+          </div>
+          <div class="countdown-date">{countdown.targetDate}</div>
         </div>
-        <div class="countdown-date">{countdown.targetDate}</div>
-      </div>
-    {/each}
+      {/each}
+    </div>
   </div>
-</div>
+{/if}
 
 <style>
   .countdown-module {

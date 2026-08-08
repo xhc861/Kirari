@@ -67,5 +67,14 @@
     "time": "23:45:23",
     "sender": "xhc861",
     "priority": "medium"
+  },
+  {
+    "id": "9",
+    "title": "中考志愿填报预测系统正式发布",
+    "content": "中考顺利！",
+    "date": "2026-07-10",
+    "time": "00:00:00",
+    "sender": "xhc861",
+    "priority": "high"
   }
 ]

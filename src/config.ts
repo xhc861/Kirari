@@ -17,11 +17,12 @@ export const siteConfig: SiteConfig = {
 	},
 	banner: {
 		enable: true,
-		src: "assets/images/backg.webp", // Relative to the /src directory. Relative to the /public directory if it starts with '/'
+		src: "assets/images/26c.jpg", // Relative to the /src directory. Relative to the /public directory if it starts with '/'
 		position: "center", // Equivalent to object-position, only supports 'top', 'center', 'bottom'. 'center' by default
 		credit: {
-			enable: false, // Display the credit text of the banner image
-			url: "https://www.pixiv.net/artworks/116080823", // (Optional) URL link to the original artwork or artist's page
+			enable: true, // Display the credit text of the banner image
+			text: "Pixiv", // Credit text displayed on the banner
+			url: "https://www.pixiv.net/artworks/138988325", // (Optional) URL link to the original artwork or artist's page
 		},
 	},
 	announcement: {
@@ -85,9 +86,9 @@ export const profileConfig: ProfileConfig = {
 			url: "https://www.twitch.tv/xhc861",
 		},
 		{
-			name: "Telegram",
+			name: "Telegram被盗号，等待恢复",
 			icon: "fa6-brands:telegram",
-			url: "https://t.me/xhc9510",
+			url: "#",
 		},
 		{
 			name: "Mail",

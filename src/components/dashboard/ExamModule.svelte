@@ -130,7 +130,7 @@ function initChart() {
 </script>
 
 <div class="exam-module card-base">
-  <h3 class="module-title">考试成绩 - {mockExams[0]?.examName || '未命名考试'}</h3>
+  <h3 class="module-title">中考成绩 - {mockExams[0]?.examName || '未命名中考'}</h3>
   <div class="status-info">
     {#if mockExams.every(exam => exam.score === null)}
       <div class="unpublished">成绩未公布</div>

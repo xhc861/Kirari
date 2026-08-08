@@ -20,7 +20,7 @@
 - **你可以在左侧卡片找到我的6个联系方式(竖屏可能在最下方)**
 - 微信：xhc861
 - Twitter/X：[@SiiWay_xhc861](https://x.com/SiiWay_xhc861)
-- Telegram：[t.me/xhc9510](https://t.me/xhc9510)
+- Telegram：Telegram被盗号，等待恢复
 - GitHub：[github.com/xhc861](https://github.com/xhc861)
 - 邮件：xhc861@siiway.org
 

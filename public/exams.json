@@ -1,65 +1,92 @@
 [
   {
     "id": "1",
-    "examName": "期末考试",
-    "subject": "数学",
-    "score": 142,
-    "schoolRank": 12,
-    "districtRank": 89,
-    "cityRank": 456
+    "examName": "中考",
+    "subject": "语文",
+    "score": null,
+    "schoolRank": null,
+    "districtRank": null,
+    "cityRank": null
   },
   {
     "id": "2",
-    "examName": "期末考试",
-    "subject": "英语",
-    "score": 135,
-    "schoolRank": 28,
-    "districtRank": 156,
-    "cityRank": 892
+    "examName": "中考",
+    "subject": "数学",
+    "score": null,
+    "schoolRank": null,
+    "districtRank": null,
+    "cityRank": null
   },
   {
     "id": "3",
-    "examName": "期末考试",
-    "subject": "物理",
-    "score": 88,
-    "schoolRank": 15,
-    "districtRank": 98,
-    "cityRank": 567
+    "examName": "中考",
+    "subject": "英语笔试",
+    "score": null,
+    "schoolRank": null,
+    "districtRank": null,
+    "cityRank": null
   },
   {
     "id": "4",
-    "examName": "期末考试",
-    "subject": "化学",
-    "score": 92,
-    "schoolRank": 8,
-    "districtRank": 67,
-    "cityRank": 389
+    "examName": "中考",
+    "subject": "英语听说",
+    "score": null,
+    "schoolRank": null,
+    "districtRank": null,
+    "cityRank": null
   },
   {
     "id": "5",
-    "examName": "期末考试",
-    "subject": "语文",
-    "score": 128,
-    "schoolRank": 45,
-    "districtRank": 234,
-    "cityRank": 1567
+    "examName": "中考",
+    "subject": "物理",
+    "score": null,
+    "schoolRank": null,
+    "districtRank": null,
+    "cityRank": null
   },
   {
     "id": "6",
-    "examName": "期末考试",
-    "subject": "道德与法治",
-    "score": 95,
-    "schoolRank": 5,
-    "districtRank": 42,
-    "cityRank": 278
+    "examName": "中考",
+    "subject": "化学",
+    "score": null,
+    "schoolRank": null,
+    "districtRank": null,
+    "cityRank": null
   },
   {
     "id": "7",
-    "examName": "期末考试",
+    "examName": "中考",
     "subject": "历史",
-    "score": 90,
-    "schoolRank": 22,
-    "districtRank": 145,
-    "cityRank": 823
+    "score": null,
+    "schoolRank": null,
+    "districtRank": null,
+    "cityRank": null
+  },
+  {
+    "id": "8",
+    "examName": "中考",
+    "subject": "道德与法治",
+    "score": null,
+    "schoolRank": null,
+    "districtRank": null,
+    "cityRank": null
+  },
+  {
+    "id": "9",
+    "examName": "中考",
+    "subject": "体育与健康",
+    "score": null,
+    "schoolRank": null,
+    "districtRank": null,
+    "cityRank": null
+  },
+  {
+    "id": "10",
+    "examName": "中考",
+    "subject": "政策性加分",
+    "score": null,
+    "schoolRank": null,
+    "districtRank": null,
+    "cityRank": null
   }
 ]
