@@ -4,6 +4,14 @@ export const friends: {
 	avatar: string;
 	url: string;
 	pin?: boolean;
+	/**
+	 * 人工确认已失效。
+	 *
+	 * 自动巡检（scripts/check-friends.mjs）只把 404/410 判为失效，超时和网络
+	 * 错误一律从宽 —— 那可能只是探测端的网络问题。真的关站了就在这里手动标，
+	 * 人的判断优先于脚本。
+	 */
+	dead?: boolean;
 }[] = [
 	{
 		name: "SiiWay Team Home",
@@ -49,12 +57,14 @@ export const friends: {
 		desc: "Protect What You Love.",
 		avatar: "https://q2.qlogo.cn/headimg_dl?dst_uin=2726730791&spec=0",
 		url: "https://blog.2b2x.cn",
+		dead: true,
 	},
 	{
 		name: "Ad_closeNN 的小站",
 		desc: "永远相信美好的事情即将发生",
 		avatar: "https://adclosenn.top/assets/avatar.jpg",
 		url: "https://adclosenn.top",
+		dead: true,
 	},
 	{
 		name: "mxd's Blog",
@@ -67,6 +77,7 @@ export const friends: {
 		desc: "一座普通，或者不普通的大学",
 		avatar: "https://q2.qlogo.cn/headimg_dl?dst_uin=3168940165&spec=0",
 		url: "https://liyao.edu.kg/",
+		dead: true,
 	},
 	{
 		name: "洛初 的 档案馆",
