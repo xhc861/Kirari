@@ -39,6 +39,13 @@ export default defineConfig({
 	adapter: vercel(),
 	// Astro 7 将默认值改为 'jsx'（按 JSX 规则剥离空白），保持旧行为避免排版变化
 	compressHTML: true,
+	i18n: {
+		// 中文为默认语言且不带前缀，现有链接与 SEO 权重不受影响；
+		// 英文走 /en/ 前缀。详见 docs/I18N-PLAN.md
+		defaultLocale: "zh_CN",
+		locales: ["zh_CN", "en"],
+		routing: { prefixDefaultLocale: false },
+	},
 	redirects: {
 		// 展板原有两个入口（/gallery/ 与 /dashboard/）渲染同一组件，现统一到 /dashboard/
 		"/gallery": "/dashboard/",
