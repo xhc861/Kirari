@@ -3,18 +3,53 @@ import I18nKey from "@i18n/i18nKey";
 import { i18n } from "@i18n/translation";
 import { getCategoryUrl } from "@utils/url-utils";
 
+/**
+ * 译文放在 src/content/posts/en/ 下，与原文同属一个集合，靠 id 前缀区分。
+ *
+ * 用目录而非 xxx.en.md：glob loader 生成 id 时会处理掉文件名里的点号，
+ * 点号写法取不到条目（关于页已踩过一次）。
+ */
+const TRANSLATION_PREFIX = "en/";
+
+/** 该条目是不是英文译文 */
+export function isTranslatedEntry(entry: CollectionEntry<"posts">): boolean {
+	return entry.id.startsWith(TRANSLATION_PREFIX);
+}
+
+/** 去掉语言目录，得到与原文一致的 slug —— 两种语言共用同一套 URL 尾部 */
+export function toBaseSlug(id: string): string {
+	return id.startsWith(TRANSLATION_PREFIX)
+		? id.slice(TRANSLATION_PREFIX.length)
+		: id;
+}
+
 // // Retrieve posts and sort them by publication date
 async function getRawSortedPosts() {
 	const allBlogPosts = await getCollection("posts", ({ data }) => {
 		return import.meta.env.PROD ? data.draft !== true : true;
 	});
 
-	const sorted = allBlogPosts.sort((a, b) => {
-		const dateA = new Date(a.data.published);
-		const dateB = new Date(b.data.published);
-		return dateA > dateB ? -1 : 1;
-	});
+	// 默认只返回中文原文；译文由 getTranslatedPost 单独取
+	const sorted = allBlogPosts
+		.filter((p) => !isTranslatedEntry(p))
+		.sort((a, b) => {
+			const dateA = new Date(a.data.published);
+			const dateB = new Date(b.data.published);
+			return dateA > dateB ? -1 : 1;
+		});
 	return sorted;
+}
+
+/**
+ * 取某篇文章的英文译文，没有则返回 undefined（调用方据此回落到原文）。
+ */
+export async function getTranslatedPost(
+	baseSlug: string,
+): Promise<CollectionEntry<"posts"> | undefined> {
+	const all = await getCollection("posts", ({ data }) => {
+		return import.meta.env.PROD ? data.draft !== true : true;
+	});
+	return all.find((p) => p.id === `${TRANSLATION_PREFIX}${baseSlug}`);
 }
 
 export async function getSortedPosts(): Promise<CollectionEntry<"posts">[]> {
@@ -116,9 +151,12 @@ export type Tag = {
 };
 
 export async function getTagList(): Promise<Tag[]> {
-	const allBlogPosts = await getCollection<"posts">("posts", ({ data }) => {
-		return import.meta.env.PROD ? data.draft !== true : true;
-	});
+	// 排除译文，否则同一篇文章的标签会被数两次
+	const allBlogPosts = (
+		await getCollection<"posts">("posts", ({ data }) => {
+			return import.meta.env.PROD ? data.draft !== true : true;
+		})
+	).filter((p) => !isTranslatedEntry(p));
 
 	const countMap: { [key: string]: number } = {};
 	allBlogPosts.forEach((post: { data: { tags: string[] } }) => {
@@ -143,9 +181,12 @@ export type Category = {
 };
 
 export async function getCategoryList(): Promise<Category[]> {
-	const allBlogPosts = await getCollection<"posts">("posts", ({ data }) => {
-		return import.meta.env.PROD ? data.draft !== true : true;
-	});
+	// 同上，排除译文避免重复计数
+	const allBlogPosts = (
+		await getCollection<"posts">("posts", ({ data }) => {
+			return import.meta.env.PROD ? data.draft !== true : true;
+		})
+	).filter((p) => !isTranslatedEntry(p));
 	const count: { [key: string]: number } = {};
 	allBlogPosts.forEach((post: { data: { category: string | null } }) => {
 		if (!post.data.category) {
