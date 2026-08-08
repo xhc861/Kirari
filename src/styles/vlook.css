@@ -168,10 +168,6 @@
 
 /* ---------- 表格增强 ---------- */
 .custom-md {
-    .vk-table {
-        width: 100%;
-    }
-
     .vk-col-bold   { font-weight: 700; }
     .vk-col-italic { font-style: italic; }
     .vk-col-mark   { background: color-mix(in oklab, var(--primary) 10%, transparent); }
