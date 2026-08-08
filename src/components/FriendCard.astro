@@ -5,9 +5,11 @@ interface Props {
 	avatar: string;
 	url: string;
 	pin?: boolean;
+	/** 人工确认已失效 */
+	dead?: boolean;
 }
 
-const { name, desc, avatar, url, pin = false } = Astro.props;
+const { name, desc, avatar, url, pin = false, dead = false } = Astro.props;
 ---
 
 <a
@@ -15,6 +17,7 @@ const { name, desc, avatar, url, pin = false } = Astro.props;
 	target="_blank"
 	rel="noopener noreferrer"
 	data-friend-url={url}
+	class:list={{ "friend-dead": dead }}
 	class={`friend-card group relative overflow-hidden rounded-xl transition-all duration-300 ${
 		pin ? "" : ""
 	}`}
