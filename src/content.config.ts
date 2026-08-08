@@ -22,6 +22,18 @@ const postsCollection = defineCollection({
 		category: z.string().optional().nullable().default(""),
 		lang: z.string().optional().default(""),
 
+		/**
+		 * 文章顶部的简述。写在 frontmatter 里，构建期直接渲染 —— 取代了原先
+		 * 调用大模型接口的 AISummary 组件：文章数量不多，逐篇写好比每次访问都
+		 * 打一次 API 更快、更省，也不依赖第三方可用性。
+		 */
+		summary: z.string().optional().default(""),
+
+		/** 所属系列。同一 series 的文章会在文章页互相串联 */
+		series: z.string().optional().default(""),
+		/** 在系列中的次序，从 1 开始 */
+		order: z.number().optional(),
+
 		/* For internal use */
 		prevTitle: z.string().default(""),
 		prevSlug: z.string().default(""),

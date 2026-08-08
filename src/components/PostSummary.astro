@@ -1,0 +1,64 @@
+---
+/**
+ * 文章顶部简述。
+ *
+ * 取代了原先的 AISummary 组件 —— 那个组件每次访问都要打一次大模型接口，
+ * 既慢又依赖第三方可用性。文章数量不多，简述直接写在 frontmatter 的
+ * summary 字段里，构建期渲染，零运行时开销。
+ */
+interface Props {
+	summary: string;
+}
+const { summary } = Astro.props;
+---
+
+{summary && (
+<div class="post-summary card-base mb-6 px-5 py-4 onload-animation">
+    <div class="summary-label">
+        <span class="summary-dot" aria-hidden="true"></span>
+        太长不看
+    </div>
+    <p class="summary-text">{summary}</p>
+</div>
+)}
+
+<style>
+    @reference "../styles/theme.css";
+
+    .post-summary {
+        /* 用主题色的极淡底，和正文卡片区分开但不抢眼 */
+        background: color-mix(in oklab, var(--primary) 7%, var(--card-bg));
+        border-left: 3px solid var(--primary);
+        border-radius: 0 var(--radius-large) var(--radius-large) 0;
+    }
+
+    .summary-label {
+        @apply flex items-center gap-2 text-sm font-bold mb-2;
+        color: var(--primary);
+        letter-spacing: 0.02em;
+    }
+
+    .summary-dot {
+        width: 0.45rem;
+        height: 0.45rem;
+        border-radius: 9999px;
+        background: var(--primary);
+        flex-shrink: 0;
+        /* 缓慢呼吸，给静态页面一点活气；尊重减少动效偏好 */
+        animation: summary-breathe 2.8s ease-in-out infinite;
+    }
+
+    @keyframes summary-breathe {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.45; transform: scale(0.82); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .summary-dot { animation: none; }
+    }
+
+    .summary-text {
+        @apply text-black/75 dark:text-white/75 leading-relaxed;
+        margin: 0;
+    }
+</style>
