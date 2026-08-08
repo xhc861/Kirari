@@ -147,6 +147,9 @@ export function rehypeVLookTable() {
 			const rows = collectRows(table);
 			if (rows.length === 0) return;
 
+			// 纯标记类，供样式钩子使用；不带任何布局属性，避免改动既有表格排版
+			addClass(table, "vk-table");
+
 			/* ---------- 1. 横向合并：单元格内容为 == ---------- */
 			for (const row of rows) {
 				const cells = cellsOf(row);
@@ -222,7 +225,6 @@ export function rehypeVLookTable() {
 				}
 			}
 
-			addClass(table, "vk-table");
 		});
 	};
 }
