@@ -5,17 +5,8 @@
   let confettiEnabled = true;
   let particlesEnabled = true;
   let shootingStarsEnabled = true;
-  let lanternsEnabled = true;  // 默认开启灯笼与横幅
   let grayscaleEnabled = false;
-  
-  // 灯笼文字（默认：中考大捷）
-  let lanternText = {
-    text1: '中',
-    text2: '考',
-    text3: '大',
-    text4: '捷'
-  };
-  
+
   // 导航栏设置
   let navbarLinks = {
     home: true,
@@ -53,31 +44,17 @@
   
   function loadSettings() {
     const saved = localStorage.getItem('effectsSettings');
-    // 一次性迁移：默认打开灯笼并设为「中考大捷」
-    const migrated = localStorage.getItem('lanternDefaultsZhongkao');
     if (saved) {
       const settings = JSON.parse(saved);
       confettiEnabled = settings.confettiEnabled ?? true;
       particlesEnabled = settings.particlesEnabled ?? true;
       shootingStarsEnabled = settings.shootingStarsEnabled ?? true;
       grayscaleEnabled = settings.grayscaleEnabled ?? false;
-      if (!migrated) {
-        lanternsEnabled = true;
-        lanternText = { text1: '中', text2: '考', text3: '大', text4: '捷' };
-        localStorage.setItem('lanternDefaultsZhongkao', '1');
-      } else {
-        lanternsEnabled = settings.lanternsEnabled ?? true;
-        if (settings.lanternText) {
-          lanternText = settings.lanternText;
-        }
-      }
       if (settings.navbarLinks) {
         navbarLinks = settings.navbarLinks;
       }
-    } else if (!migrated) {
-      localStorage.setItem('lanternDefaultsZhongkao', '1');
     }
-    
+
     // 加载音乐播放列表
     const savedPlaylist = localStorage.getItem('musicPlaylist');
     if (savedPlaylist) {
@@ -96,9 +73,7 @@
       confettiEnabled,
       particlesEnabled,
       shootingStarsEnabled,
-      lanternsEnabled,
       grayscaleEnabled,
-      lanternText,
       navbarLinks
     }));
     
@@ -112,9 +87,7 @@
         confettiEnabled,
         particlesEnabled,
         shootingStarsEnabled,
-        lanternsEnabled,
         grayscaleEnabled,
-        lanternText,
         navbarLinks,
         musicPlaylist
       }
@@ -128,10 +101,6 @@
     if (panel) {
       panel.classList.toggle('float-panel-closed');
     }
-  }
-  
-  function updateLanternText() {
-    applySettings();
   }
   
   function addSong() {
@@ -239,32 +208,6 @@
               <span class="checkbox-custom"></span>
               <span class="label-text">流星效果</span>
             </label>
-          </div>
-          
-          <div class="setting-item">
-            <label class="checkbox-label">
-              <input type="checkbox" bind:checked={lanternsEnabled} on:change={applySettings} />
-              <span class="checkbox-custom"></span>
-              <span class="label-text">节日灯笼</span>
-            </label>
-            
-            {#if lanternsEnabled}
-              <div class="sub-setting">
-                <div class="lantern-inputs">
-                  <input type="text" bind:value={lanternText.text1} on:input={updateLanternText} maxlength="1" placeholder="字1" />
-                  <input type="text" bind:value={lanternText.text2} on:input={updateLanternText} maxlength="1" placeholder="字2" />
-                  <input type="text" bind:value={lanternText.text3} on:input={updateLanternText} maxlength="1" placeholder="字3" />
-                  <input type="text" bind:value={lanternText.text4} on:input={updateLanternText} maxlength="1" placeholder="字4" />
-                </div>
-                <div class="lantern-presets">
-                  <button on:click={() => { lanternText = {text1:'中',text2:'考',text3:'大',text4:'捷'}; updateLanternText(); }}>中考大捷</button>
-                  <button on:click={() => { lanternText = {text1:'新',text2:'年',text3:'快',text4:'乐'}; updateLanternText(); }}>新年</button>
-                  <button on:click={() => { lanternText = {text1:'春',text2:'节',text3:'快',text4:'乐'}; updateLanternText(); }}>春节</button>
-                  <button on:click={() => { lanternText = {text1:'中',text2:'秋',text3:'快',text4:'乐'}; updateLanternText(); }}>中秋</button>
-                  <button on:click={() => { lanternText = {text1:'国',text2:'庆',text3:'快',text4:'乐'}; updateLanternText(); }}>国庆</button>
-                </div>
-              </div>
-            {/if}
           </div>
           
           <div class="setting-item">
@@ -574,60 +517,6 @@
   
   :global(.dark) .label-text {
     color: rgba(255, 255, 255, 0.9);
-  }
-  
-  .sub-setting {
-    margin-top: 0.75rem;
-    padding-top: 0.75rem;
-    border-top: 1px dashed var(--line-divider);
-  }
-  
-  .lantern-inputs {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 0.5rem;
-    margin-bottom: 0.5rem;
-  }
-  
-  .lantern-inputs input {
-    width: 100%;
-    padding: 0.5rem;
-    text-align: center;
-    border: 1px solid var(--line-divider);
-    background: var(--card-bg);
-    border-radius: 0.375rem;
-    font-size: 1rem;
-    font-weight: bold;
-  }
-  
-  :global(.dark) .lantern-inputs input {
-    color: rgba(255, 255, 255, 0.9);
-  }
-  
-  .lantern-presets {
-    display: flex;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-  }
-  
-  .lantern-presets button {
-    padding: 0.375rem 0.75rem;
-    border: 1px solid var(--line-divider);
-    background: var(--btn-card-bg-hover);
-    border-radius: 0.375rem;
-    cursor: pointer;
-    font-size: 0.875rem;
-    transition: all 0.2s;
-  }
-  
-  :global(.dark) .lantern-presets button {
-    color: rgba(255, 255, 255, 0.9);
-  }
-  
-  .lantern-presets button:hover {
-    background: var(--primary);
-    color: white;
-    border-color: var(--primary);
   }
   
   .version {

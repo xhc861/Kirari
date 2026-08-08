@@ -1,7 +1,6 @@
 ---
 // 特效管理组件
 import ConfettiEffect from "./ConfettiEffect.svelte";
-import FestivalLanterns from "./FestivalLanterns.svelte";
 import GrayscaleFilter from "./GrayscaleFilter.svelte";
 import ParticlesBackground from "./ParticlesBackground.svelte";
 import ShootingStars from "./ShootingStars.svelte";
@@ -10,9 +9,6 @@ import SpotlightEffect from "./SpotlightEffect.svelte";
 
 <!-- 五彩纸屑效果（点击触发） -->
 <ConfettiEffect client:only="svelte" />
-
-<!-- 节日灯笼（默认开启：中考大捷；全宽横幅见 Layout 中 CelebrationBanner） -->
-<FestivalLanterns client:load show={true} text1="中" text2="考" text3="大" text4="捷" />
 
 <!-- 纪念日黑白滤镜 -->
 <GrayscaleFilter client:only="svelte" />

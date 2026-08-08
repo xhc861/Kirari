@@ -1,9 +1,9 @@
 ---
+import "../styles/global.css";
 import "@fontsource/roboto/400.css";
 import "@fontsource/roboto/500.css";
 import "@fontsource/roboto/700.css";
 
-import CelebrationBanner from "@components/CelebrationBanner.svelte";
 import ConfigCarrier from "@components/ConfigCarrier.astro";
 import MusicPlayerWrapper from "@components/MusicPlayerWrapper.astro";
 import Notification from "@components/Notification.svelte";
@@ -156,10 +156,6 @@ const bannerOffset =
 	<body class=" min-h-screen transition " class:list={[{"lg:is-home": isHomePage, "enable-banner": enableBanner}]}
 		  data-overlayscrollbars-initialize
 	>
-		<!-- 全宽庆典横幅：文档流最上方，网页主体在其下方（非遮罩） -->
-		<CelebrationBanner client:load show={true} text1="中" text2="考" text3="大" text4="捷" />
-
-		<!-- 相对定位根：内部 absolute 布局从横幅下方起算 -->
 		<div id="app-root" class="relative min-h-screen w-full">
 			<ConfigCarrier></ConfigCarrier>
 			<!-- @ts-ignore -->
@@ -178,7 +174,8 @@ const bannerOffset =
 	'banner-height-home': `${BANNER_HEIGHT_HOME}vh`,
 	'banner-height': `${BANNER_HEIGHT}vh`,
 }}>
-@tailwind components;
+@reference "../styles/global.css";
+
 @layer components {
 	.enable-banner.is-home #banner-wrapper {
 		@apply h-[var(--banner-height-home)] translate-y-[var(--banner-height-extend)]
