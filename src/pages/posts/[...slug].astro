@@ -2,7 +2,6 @@
 /** 文章页（中文，根路径）。主体见 @components/pages/PostDetail.astro。 */
 import PostDetail from "@components/pages/PostDetail.astro";
 import { getSortedPosts } from "@utils/content-utils";
-import { DEFAULT_LOCALE } from "../../i18n/utils";
 
 export async function getStaticPaths() {
 	const blogEntries = await getSortedPosts();
@@ -14,4 +13,4 @@ export async function getStaticPaths() {
 
 const { entry } = Astro.props;
 ---
-<PostDetail entry={entry} locale={DEFAULT_LOCALE} />
+<PostDetail entry={entry}  />

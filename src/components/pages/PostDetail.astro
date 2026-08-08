@@ -3,7 +3,7 @@ import path from "node:path";
 import License from "@components/misc/License.astro";
 import Markdown from "@components/misc/Markdown.astro";
 import I18nKey from "@i18n/i18nKey";
-import { useTranslations } from "@i18n/utils";
+import { i18n } from "@i18n/translation";
 import MainGridLayout from "@layouts/MainGridLayout.astro";
 import {
 	getRelatedPosts,
@@ -13,7 +13,6 @@ import {
 import { getDir, getPostUrlBySlug } from "@utils/url-utils";
 import { Icon } from "astro-icon/components";
 import { type CollectionEntry, render } from "astro:content";
-import type { Locale } from "../../i18n/utils";
 import { licenseConfig } from "src/config";
 import Comment from "../Comment.astro";
 import KeywordTooltip from "../KeywordTooltip.svelte";
@@ -31,14 +30,10 @@ import { formatDateToYYYYMMDD } from "../../utils/date-utils";
 
 interface Props {
 	entry: CollectionEntry<"posts">;
-	locale: Locale;
-	/** 该语言下没有译文、正在回落显示原文 */
-	fallback?: boolean;
-}
-const { entry, locale, fallback = false } = Astro.props;
+	}
+const { entry } = Astro.props;
 
 // 文章页的语言由路由 props 直接给出，无需从 URL 推导
-const t = useTranslations(locale);
 const { Content, headings, remarkPluginFrontmatter } = await render(entry);
 
 /*
@@ -73,7 +68,7 @@ const jsonLd = {
 	// TODO include cover image here
 };
 ---
-<MainGridLayout banner={entry.data.image} ogImage={ogImage} title={entry.data.title} description={entry.data.description} lang={locale} setOGTypeArticle={true} headings={headings}>
+<MainGridLayout banner={entry.data.image} ogImage={ogImage} title={entry.data.title} description={entry.data.description} setOGTypeArticle={true} headings={headings}>
     <script is:inline slot="head" type="application/ld+json" set:html={JSON.stringify(jsonLd)}></script>
     <ReadingProgress />
     <div class="flex w-full rounded-[var(--radius-large)] overflow-hidden relative mb-4">
@@ -86,14 +81,14 @@ const jsonLd = {
                     <div class="transition h-6 w-6 rounded-md bg-black/5 dark:bg-white/10 text-black/50 dark:text-white/50 flex items-center justify-center mr-2">
                         <Icon name="material-symbols:notes-rounded"></Icon>
                     </div>
-                    <div class="text-sm">{remarkPluginFrontmatter.words} {" " + t(I18nKey.wordsCount)}</div>
+                    <div class="text-sm">{remarkPluginFrontmatter.words} {" " + i18n(I18nKey.wordsCount)}</div>
                 </div>
                 <div class="flex flex-row items-center">
                     <div class="transition h-6 w-6 rounded-md bg-black/5 dark:bg-white/10 text-black/50 dark:text-white/50 flex items-center justify-center mr-2">
                         <Icon name="material-symbols:schedule-outline-rounded"></Icon>
                     </div>
                     <div class="text-sm">
-                        {remarkPluginFrontmatter.minutes} {" " + t(remarkPluginFrontmatter.minutes === 1 ? I18nKey.minuteCount : I18nKey.minutesCount)}
+                        {remarkPluginFrontmatter.minutes} {" " + i18n(remarkPluginFrontmatter.minutes === 1 ? I18nKey.minuteCount : I18nKey.minutesCount)}
                     </div>
                 </div>
 
@@ -132,12 +127,6 @@ const jsonLd = {
                 <PostActions client:load slug={entry.id} title={entry.data.title} published={entry.data.published} words={remarkPluginFrontmatter.words} minutes={remarkPluginFrontmatter.minutes} />
                 <ReadingSettings client:load />
             </div>
-
-            {fallback && (
-                <div class="fallback-note">
-                    This article hasn’t been translated yet — showing the original Chinese version.
-                </div>
-            )}
 
             <!-- 系列导航（frontmatter 写了 series 时显示） -->
             <SeriesNav series={entry.data.series} posts={seriesPosts} currentId={entry.id} />
@@ -199,13 +188,3 @@ const jsonLd = {
 
 </MainGridLayout>
 
-<style>
-    @reference "../../styles/theme.css";
-
-    /* 缺译文时说明情况，而不是给 404 或空白 */
-    .fallback-note {
-        @apply text-sm mb-5 px-3 py-2 rounded-md;
-        background: color-mix(in oklab, var(--primary) 10%, transparent);
-        color: var(--primary);
-    }
-</style>

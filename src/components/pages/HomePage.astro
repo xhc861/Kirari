@@ -12,18 +12,16 @@ import PostPage from "@components/PostPage.astro";
 import MainGridLayout from "@layouts/MainGridLayout.astro";
 import type { CollectionEntry } from "astro:content";
 import type { Page } from "astro";
-import type { Locale } from "../../i18n/utils";
 
 interface Props {
 	page: Page<CollectionEntry<"posts">>;
-	locale: Locale;
-}
-const { page, locale } = Astro.props;
+	}
+const { page } = Astro.props;
 
 const len = page.data.length;
 ---
 
-<MainGridLayout lang={locale}>
+<MainGridLayout>
     <PostPage page={page}></PostPage>
     <Pagination class="mx-auto onload-animation" page={page} style={`animation-delay: calc(var(--content-delay) + ${(len)*50}ms)`}></Pagination>
 </MainGridLayout>
