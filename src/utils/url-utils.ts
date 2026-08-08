@@ -16,19 +16,24 @@ export function getPostUrlBySlug(slug: string): string {
 	return url(`/posts/${slug}/`);
 }
 
+/*
+ * 标签与分类指向独立的静态路由，而非归档页的查询参数 —— 查询参数页面不会被
+ * 搜索引擎索引、也进不了 sitemap。归档页的交互式筛选仍然保留。
+ */
 export function getTagUrl(tag: string): string {
 	if (!tag) return url("/archive/");
-	return url(`/archive/?tag=${encodeURIComponent(tag.trim())}`);
+	return url(`/tags/${encodeURIComponent(tag.trim())}/`);
 }
 
 export function getCategoryUrl(category: string | null): string {
+	// 「未分类」不是真实分类，不生成独立页面，仍交给归档页筛选
 	if (
 		!category ||
 		category.trim() === "" ||
 		category.trim().toLowerCase() === i18n(I18nKey.uncategorized).toLowerCase()
 	)
 		return url("/archive/?uncategorized=true");
-	return url(`/archive/?category=${encodeURIComponent(category.trim())}`);
+	return url(`/categories/${encodeURIComponent(category.trim())}/`);
 }
 
 export function getDir(path: string): string {
