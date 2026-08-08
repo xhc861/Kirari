@@ -1,0 +1,31 @@
+/*
+ * Tailwind 引用根（reference root）
+ *
+ * 只有本文件引入 Tailwind 本体并注册自定义 utility / 主题配置。
+ * 其余分片样式与组件 scoped <style> 都通过 `@reference "…/theme.css"` 取用，
+ * 这样即便 Vite 把某个分片当成独立单元编译，也仍能解析 @apply。
+ *
+ * v4 的 `@layer components` 只是原生级联层，其中的类不再是「真正的 utility」，
+ * 因此无法被别处 @apply。凡被跨文件 @apply 的类都在这里用 `@utility` 注册。
+ */
+@import "tailwindcss";
+@config "../../tailwind.config.mjs";
+
+@utility expand-animation {
+	@apply relative before:ease-out before:transition active:bg-none hover:before:bg-[var(--btn-plain-bg-hover)] active:before:bg-[var(--btn-plain-bg-active)] z-0
+	before:absolute before:rounded-[inherit] before:inset-0 before:scale-[0.85] hover:before:scale-100 before:-z-10;
+}
+
+@utility link {
+	@apply transition rounded-md p-1 -m-1 expand-animation;
+}
+
+@utility link-lg {
+	@apply transition rounded-md p-1.5 -m-1.5 expand-animation;
+}
+
+@utility btn-regular-dark {
+	@apply flex items-center justify-center
+	bg-[oklch(0.45_0.01_var(--hue))] hover:bg-[oklch(0.50_0.01_var(--hue))] active:bg-[oklch(0.55_0.01_var(--hue))]
+	dark:bg-[oklch(0.30_0.02_var(--hue))] dark:hover:bg-[oklch(0.35_0.03_var(--hue))] dark:active:bg-[oklch(0.40_0.03_var(--hue))];
+}

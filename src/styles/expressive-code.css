@@ -1,3 +1,5 @@
+@reference "./theme.css";
+
 .expressive-code {
     .frame {
         @apply shadow-none!;

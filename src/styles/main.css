@@ -1,29 +1,9 @@
+@reference "./theme.css";
+
 /*
- * Tailwind v4 说明：
- * v4 的 `@layer components` 只是原生级联层，其中定义的类不再是「真正的 utility」，
- * 因此无法被别处 `@apply` 引用。凡是被其它规则 `@apply` 的类（expand-animation、
- * link、link-lg、btn-regular-dark）改用 `@utility` 注册；其余仅作为普通类使用的，
- * 继续留在 `@layer components` 里。
+ * 被跨文件 @apply 的类（expand-animation / link / link-lg / btn-regular-dark）
+ * 已在 theme.css 中用 @utility 注册；这里只保留仅作普通类使用的规则。
  */
-
-@utility expand-animation {
-    @apply relative before:ease-out before:transition active:bg-none hover:before:bg-[var(--btn-plain-bg-hover)] active:before:bg-[var(--btn-plain-bg-active)] z-0
-    before:absolute before:rounded-[inherit] before:inset-0 before:scale-[0.85] hover:before:scale-100 before:-z-10;
-}
-
-@utility link {
-    @apply transition rounded-md p-1 -m-1 expand-animation;
-}
-
-@utility link-lg {
-    @apply transition rounded-md p-1.5 -m-1.5 expand-animation;
-}
-
-@utility btn-regular-dark {
-    @apply flex items-center justify-center
-    bg-[oklch(0.45_0.01_var(--hue))] hover:bg-[oklch(0.50_0.01_var(--hue))] active:bg-[oklch(0.55_0.01_var(--hue))]
-    dark:bg-[oklch(0.30_0.02_var(--hue))] dark:hover:bg-[oklch(0.35_0.03_var(--hue))] dark:active:bg-[oklch(0.40_0.03_var(--hue))];
-}
 
 @layer components {
     .card-base {
