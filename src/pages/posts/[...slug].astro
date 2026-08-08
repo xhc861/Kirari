@@ -106,7 +106,7 @@ const jsonLd = {
             </div>
 
             <!-- AI 智能总结 -->
-            <AISummary client:load content={entry.body} title={entry.data.title} />
+            <AISummary client:load content={entry.body ?? ""} title={entry.data.title} />
 
             <!-- always show cover as long as it has one -->
 
