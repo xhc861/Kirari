@@ -36,7 +36,7 @@ const missingTranslation = locale !== DEFAULT_LOCALE && !translated;
 
 const { Content } = await render(entry);
 ---
-<MainGridLayout title={t(I18nKey.about)} description={t(I18nKey.about)}>
+<MainGridLayout lang={locale} title={t(I18nKey.about)} description={t(I18nKey.about)}>
     <div class="flex w-full rounded-[var(--radius-large)] overflow-hidden relative min-h-32">
         <div class="card-base z-10 px-9 py-6 relative w-full ">
             {missingTranslation && (

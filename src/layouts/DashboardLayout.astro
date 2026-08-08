@@ -6,12 +6,14 @@ import Layout from "./Layout.astro";
 
 interface Props {
 	title?: string;
+	/** 当前页面语言，透传给 Layout 以正确设置 html lang */
+	lang?: string;
 }
 
-const { title } = Astro.props;
+const { title, lang } = Astro.props;
 ---
 
-<Layout title={title}>
+<Layout title={title} lang={lang}>
 
 <!-- Navbar -->
 <div id="top-row" class="z-50 pointer-events-none relative transition-all duration-700 max-w-[var(--page-width)] px-0 md:px-4 mx-auto">

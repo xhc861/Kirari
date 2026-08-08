@@ -1,10 +1,10 @@
 ---
+import { DEFAULT_LOCALE, LOCALES, useTranslations } from "../../i18n/utils";
 import ArchivePanel from "@components/ArchivePanel.svelte";
 import MicroNewsAnnouncement from "@components/MicroNewsAnnouncement.svelte";
 import I18nKey from "@i18n/i18nKey";
-import { i18n } from "@i18n/translation";
 import MainGridLayout from "@layouts/MainGridLayout.astro";
-import { getSortedPostsList } from "../utils/content-utils";
+import { getSortedPostsList } from "../../utils/content-utils";
 
 const sortedPostsList = await getSortedPostsList();
 
@@ -18,9 +18,20 @@ const postsForArchive = sortedPostsList.map((post) => ({
 		published: post.data.published,
 	},
 }));
+
+export function getStaticPaths() {
+	return LOCALES.map((locale) => ({
+		// 默认语言不带前缀：lang 传 undefined 即匹配根路径
+		params: { lang: locale === DEFAULT_LOCALE ? undefined : locale },
+		props: { locale },
+	}));
+}
+
+const { locale } = Astro.props;
+const t = useTranslations(locale);
 ---
 
-<MainGridLayout title={i18n(I18nKey.archive)}>
+<MainGridLayout lang={locale} title={t(I18nKey.archive)}>
     <!-- @ts-ignore -->
     <MicroNewsAnnouncement client:load />
     <ArchivePanel tags={[]} categories={[]} sortedPosts={postsForArchive} client:only="svelte"></ArchivePanel>

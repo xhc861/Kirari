@@ -6,6 +6,7 @@ import { getPostUrlBySlug, url } from "@utils/url-utils";
 // 走错路的人多半还想看点别的，所以把最近几篇文章直接摆出来，
 // 而不是只丢一句「页面不存在」让他们自己找回去。
 const recent = (await getSortedPosts()).slice(0, 3);
+
 ---
 
 <MainGridLayout title="页面走丢了" description="没有找到这个页面">
