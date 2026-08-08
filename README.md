@@ -1,14 +1,23 @@
-# xhc861's Blog by Fuwari(日译：轻轻的)
+# Kirari
 
+> **Kirari**（きらり）—— 闪耀的样子。
 
+一个基于 Astro 7 + Svelte 5 + Tailwind 4 的博客主题，在 [Fuwari](https://github.com/saicaca/fuwari) 基础上深度二次开发。
 
-本博客的原型是 [fuwari](https://github.com/saicaca/fuwari) ，特别感谢！我在此基础上二开了许多，建议K12在读的学生看看。
+原型是 [fuwari](https://github.com/saicaca/fuwari)（日译：轻轻的），特别感谢！Kirari 在其之上重写了样式体系、内容管线与展板系统。
 
+## 🧱 技术栈
 
+| 项 | 版本 |
+| --- | --- |
+| Astro | 7.x（Content Layer API / Vite 8 / Rust 编译器） |
+| Svelte | 5.x |
+| Tailwind CSS | 4.x（CSS-first，`@tailwindcss/vite`） |
+| Markdown | unified（remark / rehype 生态） |
+| 搜索 | Pagefind |
+| 部署 | Vercel |
 
 ## ⚡ Commands
-
-
 
 All commands are run from the root of the project, from a terminal:
 
@@ -24,14 +33,19 @@ All commands are run from the root of the project, from a terminal:
 | `pnpm astro ...`           | Run CLI commands like `astro add`, `astro check` |
 | `pnpm astro --help`        | Get help using the Astro CLI                     |
 
-## ✏️ Contributing
+## 🎨 样式说明
 
+Tailwind v4 下，样式入口为 `src/styles/global.css`，Tailwind 本体与自定义 utility 集中在
+`src/styles/theme.css`（引用根）。组件或页面的 scoped `<style>` 中若要用 `@apply`，
+需先在样式块内写 `@reference "…/theme.css";`。
 
+## 🌿 分支
 
-Check out the [Contributing Guide](https://github.com/saicaca/fuwari/blob/main/CONTRIBUTING.md) for details on how to contribute to this project.
+| 分支 | 内容 |
+| --- | --- |
+| `main` | 不含文章的干净模板 |
+| `content` | 含完整文章与个人数据的站点 |
 
 ## 📄 License
 
-
-
-This project is licensed with origin project.
+This project is licensed with origin project ([Fuwari](https://github.com/saicaca/fuwari), MIT)。

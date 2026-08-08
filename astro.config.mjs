@@ -28,7 +28,7 @@ import { pluginCustomCopyButton } from "./src/plugins/expressive-code/custom-cop
 
 // https://astro.build/config
 export default defineConfig({
-	site: "https://fuwari.vercel.app/",
+	site: "https://kirari.vercel.app/",
 	base: "/",
 	trailingSlash: "always",
 	output: "static", // 静态模式，API 路由会自动作为服务端函数

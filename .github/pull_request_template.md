@@ -7,9 +7,9 @@
 
 ## Checklist
 
-- [ ] I have read the [**CONTRIBUTING**](https://github.com/saicaca/fuwari/blob/main/CONTRIBUTING.md) document.
-- [ ] I have checked to ensure that this Pull Request is not for personal changes.
 - [ ] I have performed a self-review of my own code.
+- [ ] `pnpm check` passes with no new errors.
+- [ ] `pnpm build` succeeds.
 - [ ] My changes generate no new warnings.
 
 ## Related Issue
