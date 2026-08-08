@@ -76,6 +76,12 @@ const dailyQuote = "今天过得开心吗？*&*haha";
       runDaysElement.textContent = String(daysRunning);
     }
 
+    // 版权年份同样是构建期求值的，跨年后若未重新部署会停在旧年份
+    const yearElement = document.getElementById('copyright-year');
+    if (yearElement) {
+      yearElement.textContent = String(today.getFullYear());
+    }
+
     // 更新一言 - 每次都获取新的
     const dailyQuoteElement = document.getElementById('daily-quote');
     if (dailyQuoteElement) {
@@ -118,7 +124,6 @@ const dailyQuote = "今天过得开心吗？*&*haha";
 
   // 监听 Swup 页面切换完成事件
   document.addEventListener('swup:page:view', () => {
-    console.log('Swup page view - updating footer');
     updateFooter();
   });
 </script>

@@ -1,5 +1,9 @@
 import type { APIRoute } from "astro";
 
+// 该接口每次请求都要取当天的实时日历数据。
+// output 为 static 时若不关掉预渲染，会在构建期执行一次并把当天数据烤死在产物里。
+export const prerender = false;
+
 export const GET: APIRoute = async () => {
 	try {
 		const now = new Date();

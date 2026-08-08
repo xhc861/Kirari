@@ -15,7 +15,7 @@ let remainingDays: { [key: string]: number } = {};
 
 async function loadCountdowns() {
 	try {
-		const response = await fetch("/countdowns.json");
+		const response = await fetch("/countdowns.json", { cache: "no-store" });
 		const data = await response.json();
 		items = Array.isArray(data) ? data : [];
 		calculateRemainingDays();
