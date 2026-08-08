@@ -15,11 +15,6 @@
       "description": "一种在线日志形式的网站，用于发布文章、分享想法和经验",
       "url": "https://zh.wikipedia.org/wiki/网志"
     },
-    "SiiWay": {
-      "title": "TEAM SiiWay",
-      "description": "SiiWay团队，专注于互联网，笔者团队的身份是创立者",
-      "url": "https://siiway.org"
-    },
     "Svelte": {
       "title": "Svelte",
       "description": "一个编译时框架，将组件编译为高效的原生 JavaScript",

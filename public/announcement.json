@@ -1,18 +1,14 @@
 {
-  "enable": true,
+  "enable": false,
   "title": "公告",
-  "content": "强烈不建议使用Via、M浏览器、Vie等调用WebView内核的浏览器访问本站，以免出现界面异常。同时建议使用平板、电脑等宽屏设备或模式访问本站，谢谢。",
+  "content": "这里是公告内容，把 enable 改为 true 即可在站点上显示。",
   "icon": "fa6-solid:bullhorn",
   "closeable": true,
   "critical": false,
   "links": [
     {
-      "text": "Edge浏览器(电脑)",
-      "url": "https://www.microsoft.com/zh-cn/edge/download"
-    },
-    {
-      "text": "雨见浏览器(移动端)",
-      "url": "https://www.yjllq.com/"
+      "text": "示例链接",
+      "url": "https://example.com"
     }
   ]
 }
