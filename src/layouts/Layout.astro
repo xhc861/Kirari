@@ -1,4 +1,7 @@
 ---
+// theme.css 必须先于 global.css：它提供 Tailwind base 与自定义 utility，
+// 各分片只 @reference 它（不产出），所以 base 只会在这里生成一次。
+import "../styles/theme.css";
 import "../styles/global.css";
 import "@fontsource/roboto/400.css";
 import "@fontsource/roboto/500.css";
