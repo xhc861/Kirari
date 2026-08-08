@@ -9,17 +9,30 @@ const daysRunning = Math.floor(
 	(today.getTime() - launchDate.getTime()) / (1000 * 60 * 60 * 24),
 );
 
-// 默认一言句子
-const dailyQuote = "今天过得开心吗？*&*haha";
+// 一言接口取不到时的兜底句子（原文案里混进了 "*&*haha" 这样的残留字符）
+const dailyQuote = "今天过得开心吗？";
 ---
 
 <div class="transition border-t border-black/10 dark:border-white/15 my-10 border-dashed mx-32"></div>
 
 <div class="transition border-dashed border-[oklch(85%_0.01_var(--hue))] dark:border-white/15 rounded-2xl mb-12 flex flex-col items-center justify-center px-6 space-y-4 text-center">
     <!-- 每日一言 -->
-    <div id="daily-quote" class="text-sm italic text-gray-600 dark:text-gray-400" data-default-quote={dailyQuote}>
+    <div id="daily-quote" class="daily-quote text-sm italic text-gray-600 dark:text-gray-400" data-default-quote={dailyQuote}>
         {dailyQuote}
     </div>
+
+    <style>
+        /* 取一言期间轻微淡出，读者能看出这句还在路上，而不是最终结果 */
+        .daily-quote {
+            transition: opacity 0.35s ease;
+        }
+        .daily-quote[data-pending] {
+            opacity: 0.4;
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .daily-quote { transition: none; }
+        }
+    </style>
 
     <!-- 安全运行天数 -->
     <div class="text-xs text-gray-500 dark:text-gray-400">
@@ -42,88 +55,135 @@ const dailyQuote = "今天过得开心吗？*&*haha";
 </div>
 
 <script is:inline>
-  // 获取每日一言
-  async function fetchHitokoto() {
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
-      
-      const res = await fetch("https://v1.hitokoto.cn?c=i&encode=json", {
-        signal: controller.signal
-      });
-      clearTimeout(timeoutId);
-      
-      if (!res.ok) throw new Error('API request failed');
-      const data = await res.json();
-      
-      if (data && data.hitokoto) {
-        return `"${data.hitokoto}" — ${data.from || "佚名"}`;
-      }
-    } catch (e) {
-      console.info("每日一言暂时无法获取");
-    }
-    return null;
-  }
+/*
+ * 页脚逻辑。
+ *
+ * 原实现有四个问题：
+ *  1. 每次 Swup 切页都重新拉一次一言 —— 逛几页就打好几次接口，句子还一直跳；
+ *  2. 页脚在 Swup 交换的容器内，脚本会重复执行，累积重复的事件监听与
+ *     setInterval 定时器；
+ *  3. 快速连续切页时多个请求并发返回，谁后到谁覆盖，存在竞态；
+ *  4. 失败时静默回落，读者不知道那句默认文案不是真的一言。
+ *
+ * 现在：整个会话只取一次并缓存（sessionStorage），切页只做重绘；
+ * 用全局标记保证监听与定时器各只注册一次。
+ */
+(() => {
+  const LAUNCH_DATE = "2026-01-02";
+  const QUOTE_CACHE_KEY = "kirari:hitokoto";
+  const QUOTE_TTL = 30 * 60 * 1000; // 半小时内复用同一句
 
-  // 更新页脚信息
-  async function updateFooter() {
-    // 更新运行时间
-    const launchDate = new Date("2026-01-02");
-    const today = new Date();
-    const daysRunning = Math.floor((today.getTime() - launchDate.getTime()) / (1000 * 60 * 60 * 24));
-    const runDaysElement = document.getElementById('run-days');
-    if (runDaysElement) {
-      runDaysElement.textContent = String(daysRunning);
-    }
-
-    // 版权年份同样是构建期求值的，跨年后若未重新部署会停在旧年份
-    const yearElement = document.getElementById('copyright-year');
-    if (yearElement) {
-      yearElement.textContent = String(today.getFullYear());
-    }
-
-    // 更新一言 - 每次都获取新的
-    const dailyQuoteElement = document.getElementById('daily-quote');
-    if (dailyQuoteElement) {
-      const quote = await fetchHitokoto();
-      if (quote) {
-        dailyQuoteElement.textContent = quote;
-      } else {
-        // 使用默认句子
-        const defaultQuote = dailyQuoteElement.getAttribute('data-default-quote');
-        if (defaultQuote) {
-          dailyQuoteElement.textContent = defaultQuote;
-        }
-      }
-    }
-  }
-
-  // 初始化函数
-  function initFooter() {
-    // 立即更新一次
-    updateFooter();
-    
-    // 定期更新运行时间（每分钟）
-    setInterval(() => {
-      const launchDate = new Date("2026-01-02");
-      const today = new Date();
-      const daysRunning = Math.floor((today.getTime() - launchDate.getTime()) / (1000 * 60 * 60 * 24));
-      const runDaysElement = document.getElementById('run-days');
-      if (runDaysElement) {
-        runDaysElement.textContent = String(daysRunning);
-      }
-    }, 60000);
-  }
-
-  // 确保在 DOM 加载后执行
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initFooter);
+  // 脚本可能随容器交换被重复执行，这里保证只初始化一次
+  if (window.__kirariFooterInit) {
+    document.dispatchEvent(new CustomEvent("kirari:footer:render"));
   } else {
-    initFooter();
+    window.__kirariFooterInit = true;
+    setup();
   }
 
-  // 监听 Swup 页面切换完成事件
-  document.addEventListener('swup:page:view', () => {
-    updateFooter();
-  });
+  function setup() {
+    let quotePromise = null;
+
+    function readCachedQuote() {
+      try {
+        const raw = sessionStorage.getItem(QUOTE_CACHE_KEY);
+        if (!raw) return null;
+        const cached = JSON.parse(raw);
+        if (!cached || typeof cached.text !== "string") return null;
+        if (Date.now() - cached.at > QUOTE_TTL) return null;
+        return cached.text;
+      } catch {
+        return null;
+      }
+    }
+
+    async function fetchQuote() {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 5000);
+      try {
+        const res = await fetch("https://v1.hitokoto.cn?c=i&encode=json", {
+          signal: controller.signal,
+        });
+        if (!res.ok) throw new Error(`hitokoto ${res.status}`);
+        const data = await res.json();
+        if (!data || !data.hitokoto) throw new Error("hitokoto empty payload");
+        const text = `“${data.hitokoto}” —— ${data.from || "佚名"}`;
+        try {
+          sessionStorage.setItem(
+            QUOTE_CACHE_KEY,
+            JSON.stringify({ text, at: Date.now() })
+          );
+        } catch {
+          /* 隐私模式下 sessionStorage 可能不可写，忽略即可 */
+        }
+        return text;
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+
+    /** 整个会话只发起一次请求，后续调用复用同一个 promise */
+    function getQuote() {
+      const cached = readCachedQuote();
+      if (cached) return Promise.resolve(cached);
+      if (!quotePromise) {
+        quotePromise = fetchQuote().catch(() => null);
+      }
+      return quotePromise;
+    }
+
+    function renderDays() {
+      const today = new Date();
+      const days = Math.floor(
+        (today.getTime() - new Date(LAUNCH_DATE).getTime()) / 86400000
+      );
+      const el = document.getElementById("run-days");
+      if (el) el.textContent = String(days);
+
+      // 版权年份也是构建期求值的，跨年未重新部署会停在旧年份
+      const year = document.getElementById("copyright-year");
+      if (year) year.textContent = String(today.getFullYear());
+    }
+
+    async function renderQuote() {
+      const el = document.getElementById("daily-quote");
+      if (!el) return;
+
+      const cached = readCachedQuote();
+      if (cached) {
+        el.textContent = cached;
+        el.removeAttribute("data-pending");
+        return;
+      }
+
+      el.setAttribute("data-pending", "");
+      const quote = await getQuote();
+
+      // 等待期间可能已切到别的页面，重新取一次元素避免写到已卸载的节点上
+      const current = document.getElementById("daily-quote");
+      if (!current) return;
+      current.removeAttribute("data-pending");
+      current.textContent =
+        quote || current.getAttribute("data-default-quote") || "";
+    }
+
+    function render() {
+      renderDays();
+      renderQuote();
+    }
+
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", render, { once: true });
+    } else {
+      render();
+    }
+
+    // 切页后页脚 DOM 被换掉，只需重绘，不重新请求
+    document.addEventListener("swup:page:view", render);
+    document.addEventListener("kirari:footer:render", render);
+
+    // 运行天数每分钟刷新一次即可，只注册一个定时器
+    setInterval(renderDays, 60000);
+  }
+})();
 </script>
