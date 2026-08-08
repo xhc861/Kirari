@@ -1,11 +1,9 @@
 <script lang="ts">
-import { clientLocale, useTranslations } from "@i18n/utils";
 import I18nKey from "@i18n/i18nKey";
+import { i18n } from "@i18n/translation";
 import Icon from "@iconify/svelte";
 import { getDefaultHue, getHue, setHue } from "@utils/setting-utils";
 
-// 语言取自页面的 <html lang>，由路由设置
-const t = useTranslations(clientLocale());
 
 
 let hue = getHue();
@@ -26,7 +24,7 @@ $: if (hue || hue === 0) {
             before:w-1 before:h-4 before:rounded-md before:bg-[var(--primary)]
             before:absolute before:-left-3 before:top-[0.33rem]"
         >
-            {t(I18nKey.themeColor)}
+            {i18n(I18nKey.themeColor)}
             <button aria-label="Reset to Default" class="btn-regular w-7 h-7 rounded-md  active:scale-90 will-change-transform"
                     class:opacity-0={hue === defaultHue} class:pointer-events-none={hue === defaultHue} on:click={resetHue}>
                 <div class="text-[var(--btn-content)]">
@@ -42,7 +40,7 @@ $: if (hue || hue === 0) {
         </div>
     </div>
     <div class="w-full h-6 px-1 bg-[oklch(0.80_0.10_0)] dark:bg-[oklch(0.70_0.10_0)] rounded-sm select-none">
-        <input aria-label={t(I18nKey.themeColor)} type="range" min="0" max="360" bind:value={hue}
+        <input aria-label={i18n(I18nKey.themeColor)} type="range" min="0" max="360" bind:value={hue}
                class="slider" id="colorSlider" step="5" style="width: 100%">
     </div>
 </div>

@@ -1,5 +1,5 @@
 ---
-import { getLangFromUrl, useTranslations } from "@i18n/utils";
+import { i18n } from "@i18n/translation";
 import { Icon } from "astro-icon/components";
 import { licenseConfig, profileConfig } from "../../config";
 import I18nKey from "../../i18n/i18nKey";
@@ -17,8 +17,6 @@ const className = Astro.props.class;
 const profileConf = profileConfig;
 const licenseConf = licenseConfig;
 
-// 语言由当前路由决定，组件直接从 Astro.url 推导，不必层层传 prop
-const t = useTranslations(getLangFromUrl(Astro.url));
 ---
 <div class={`relative transition overflow-hidden bg-[var(--license-block-bg)] py-5 px-6 ${className}`}>
     <div class="transition font-bold text-black/75 dark:text-white/75 text-lg mb-3">
@@ -26,15 +24,15 @@ const t = useTranslations(getLangFromUrl(Astro.url));
     </div>
     <div class="flex flex-wrap gap-6 mt-2">
         <div>
-            <div class="transition text-black/30 dark:text-white/30 text-sm">{t(I18nKey.author)}</div>
+            <div class="transition text-black/30 dark:text-white/30 text-sm">{i18n(I18nKey.author)}</div>
             <div class="transition text-black/75 dark:text-white/75 line-clamp-2">{profileConf.name}</div>
         </div>
         <div>
-            <div class="transition text-black/30 dark:text-white/30 text-sm">{t(I18nKey.publishedAt)}</div>
+            <div class="transition text-black/30 dark:text-white/30 text-sm">{i18n(I18nKey.publishedAt)}</div>
             <div class="transition text-black/75 dark:text-white/75 line-clamp-2">{formatDateToYYYYMMDD(pubDate)}</div>
         </div>
         <div>
-            <div class="transition text-black/30 dark:text-white/30 text-sm">{t(I18nKey.license)}</div>
+            <div class="transition text-black/30 dark:text-white/30 text-sm">{i18n(I18nKey.license)}</div>
             <a href={licenseConf.url} target="_blank" class="link text-[var(--primary)] line-clamp-2">{licenseConf.name}</a>
         </div>
     </div>

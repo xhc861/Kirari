@@ -1,294 +1,20 @@
-/* 极简打印样式 - 只保留文章内容 */
+/*
+ * 打印 / 导出 PDF 样式。
+ *
+ * 策略：打印整个页面，只做「让打印能正常工作」的最小干预。
+ *
+ * 之前的做法是逐个隐藏非正文元素、只留文章内容 —— 结果每加一个新组件就要
+ * 补一条规则，漏一个就印出来，而更麻烦的是隐藏和布局重置一起改动结构，
+ * 反复出现内容缺失。整页打印虽然会带上导航栏这类东西，但胜在**不会丢内容**，
+ * 这对导出 PDF 来说更重要。
+ */
+
 @media print {
-  /* 隐藏所有非内容元素 */
-  nav, header, footer, aside,
-  #navbar, #navbar-wrapper,
-  #sidebar, #sidebar-wrapper,
-  .post-actions, .reading-settings,
-  .giscus-container, .comment,
-  button, .btn-card, .scale-animation,
-  .widget, .toc, .back-to-top,
-  #back-to-top-btn,
-  .music-player,
-  .notification,
-  .license, .license-container,
-  .post-license,
-  #license,
-  #banner,
-  #banner-wrapper,
-  #top-row,
-  .navbar,
-  .footer,
-  #main-grid > div:first-child,
-  #main-grid > div:last-child {
-    display: none !important;
-    visibility: hidden !important;
-  }
-  
-  /* 显示主要内容 */
-  main,
-  article,
-  .markdown-content {
-    display: block !important;
-    visibility: visible !important;
-  }
-  
-  /* 重置页面样式 */
-  * {
-    background: white !important;
-    color: black !important;
-    box-shadow: none !important;
-    border-color: #ddd !important;
-  }
-  
-  html, body {
-    margin: 0 !important;
-    padding: 0 !important;
-    font-family: 'Times New Roman', serif;
-    background: white !important;
-  }
-  
-  body {
-    transform: none !important;
-  }
-  
-  main {
-    max-width: 100% !important;
-    margin: 0 !important;
-    padding: 1cm !important;
-    transform: none !important;
-  }
-  
-  /* 确保文章内容区域占满页面 */
-  #main-grid {
-    display: block !important;
-    grid-template-columns: none !important;
-  }
-  
-  /* 隐藏文章元数据中不需要的部分 */
-  .post-meta .reading-time,
-  .post-meta .word-count {
-    display: inline !important;
-  }
-  
-  /* 确保只显示文章标题和内容 */
-  .banner-container,
-  #post-cover {
-    display: block !important;
-    max-width: 100% !important;
-  }
-  
-  /* 文章标题 */
-  h1 {
-    font-size: 28pt;
-    font-weight: bold;
-    margin: 0 0 0.5em 0;
-    page-break-after: avoid;
-    color: black !important;
-  }
-  
-  /* 文章元数据 */
-  .post-meta {
-    font-size: 10pt;
-    color: #666 !important;
-    margin-bottom: 2em;
-    padding-bottom: 0.5em;
-    border-bottom: 1px solid #ddd !important;
-  }
-  
-  /* 文章内容 */
-  .markdown-content,
-  article {
-    font-size: 11pt;
-    line-height: 1.6;
-    max-width: 100% !important;
-    color: black !important;
-  }
-  
-  /* 标题层级 */
-  h2 { font-size: 18pt; margin: 1.5em 0 0.5em 0; page-break-after: avoid; color: black !important; }
-  h3 { font-size: 14pt; margin: 1.2em 0 0.5em 0; page-break-after: avoid; color: black !important; }
-  h4 { font-size: 12pt; margin: 1em 0 0.5em 0; page-break-after: avoid; color: black !important; }
-  h5, h6 { font-size: 11pt; margin: 1em 0 0.5em 0; page-break-after: avoid; color: black !important; }
-  
-  /* 段落 */
-  p {
-    margin: 0.5em 0;
-    text-align: justify;
-    orphans: 3;
-    widows: 3;
-    color: black !important;
-  }
-  
-  /* 链接 */
-  a {
-    color: black !important;
-    text-decoration: none;
-  }
-  
-  a[href^="http"]:after {
-    content: " [" attr(href) "]";
-    font-size: 9pt;
-    color: #666 !important;
-    word-break: break-all;
-  }
-  
-  /* 列表 */
-  ul, ol {
-    margin: 0.5em 0;
-    padding-left: 2em;
-    color: black !important;
-  }
-  
-  li {
-    margin: 0.3em 0;
-    color: black !important;
-  }
-  
-  /* 强制显示文本内容 */
-  span, div, section {
-    color: black !important;
-  }
-  
-  /* 代码 */
-  code {
-    font-family: 'Courier New', monospace;
-    font-size: 9pt;
-    background: #f5f5f5 !important;
-    padding: 2px 4px;
-    border: 1px solid #ddd !important;
-  }
-  
-  pre {
-    background: #f9f9f9 !important;
-    border: 1px solid #ddd !important;
-    padding: 10px;
-    margin: 1em 0;
-    page-break-inside: avoid;
-    overflow: hidden;
-  }
-  
-  pre code {
-    background: transparent !important;
-    border: none !important;
-    padding: 0;
-  }
-  
-  /* 引用 */
-  blockquote {
-    margin: 1em 0;
-    padding-left: 1em;
-    border-left: 3px solid #ddd !important;
-    font-style: italic;
-    page-break-inside: avoid;
-  }
-  
-  /* 图片 */
-  img {
-    max-width: 100% !important;
-    height: auto !important;
-    page-break-inside: avoid;
-    display: block;
-    margin: 1em auto;
-  }
-  
-  /* 表格 */
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    margin: 1em 0;
-    page-break-inside: avoid;
-  }
-  
-  th, td {
-    border: 1px solid #ddd !important;
-    padding: 8px;
-    text-align: left;
-  }
-  
-  th {
-    background: #f5f5f5 !important;
-    font-weight: bold;
-  }
-  
-  /* 分隔线 */
-  hr {
-    border: none;
-    border-top: 1px solid #ddd !important;
-    margin: 2em 0;
-  }
-  
-  /* 页面设置 */
-  @page {
-    margin: 2.5cm;
-    size: A4;
-  }
-  
-  /* 避免元素跨页断裂 */
-  h1, h2, h3, h4, h5, h6,
-  img, table, pre, blockquote {
-    page-break-inside: avoid;
-  }
-  
-  /* 标题后保持内容 */
-  h1, h2, h3, h4, h5, h6 {
-    page-break-after: avoid;
-  }
-
+  /* ---------- 1. 分页：绝对定位是内容被截断的根因 ---------- */
   /*
-   * 本轮新增的组件同样不该出现在纸上。
-   * 进度条、语言切换、评论数是导航性质的；相关文章与系列目录在纸上是死链接，
-   * 印出来只是浪费墨。文章简述保留 —— 它属于正文内容。
-   */
-  #reading-progress,
-  .lang-switch,
-  .comment-count,
-  .related,
-  .series-nav,
-  #comment,
-  .giscus-container,
-  .post-actions,
-  .reading-settings {
-    display: none !important;
-  }
-
-  /* 简述保留，但去掉屏幕上的装饰色块，省墨且更清晰 */
-  .post-summary {
-    background: none !important;
-    border-left: 2px solid #999 !important;
-    padding-left: 0.8em !important;
-  }
-
-  /* 链接在纸上无法点击，把地址跟在后面 */
-  .custom-md a[href^="http"]::after {
-    content: " (" attr(href) ")";
-    font-size: 0.85em;
-    color: #666;
-    word-break: break-all;
-  }
-
-  /* 代码块与图片避免被分页切断 */
-  .custom-md pre,
-  .custom-md figure,
-  .custom-md img,
-  .expressive-code {
-    break-inside: avoid;
-    page-break-inside: avoid;
-  }
-
-  /* 标题不要落在页尾 */
-  .custom-md h1,
-  .custom-md h2,
-  .custom-md h3 {
-    break-after: avoid;
-    page-break-after: avoid;
-  }
-
-  /*
-   * 分页截断的根因：主内容区放在 position: absolute 的容器里
-   * （MainGridLayout 用 absolute + top 定位面板）。绝对定位元素在打印时
-   * 只渲染第一页，后面的内容会被整段丢掉 —— 这就是「有内容没截到」。
-   * 打印时必须把整条链路拍回普通文档流。
+   * MainGridLayout 把主内容区放在 position:absolute + top 的容器里，
+   * 而绝对定位元素打印时只渲染第一页，后面整段丢失。
+   * 必须把整条链路拍回普通文档流，容器的 overflow 裁剪也要解除。
    */
   #app-root,
   #app-root > div,
@@ -307,17 +33,17 @@
     max-width: 100% !important;
     height: auto !important;
     max-height: none !important;
-    /* overflow 一旦裁剪，超出部分同样印不出来 */
     overflow: visible !important;
   }
 
-  /* 网格布局在纸上没有意义，拍平成单栏 */
+  /* 网格在纸上没有意义，拍平成单栏，避免侧栏挤占正文宽度 */
   #main-grid {
     display: block !important;
     grid-template-columns: none !important;
   }
 
-  /* 入场动画会让元素停在 opacity:0，打印出来是空白 */
+  /* ---------- 2. 可见性：别印出空白 ---------- */
+  /* 入场动画若未触发，元素停在 opacity:0，打印即空白 */
   .onload-animation,
   [class*="onload"] {
     animation: none !important;
@@ -325,7 +51,7 @@
     transform: none !important;
   }
 
-  /* 折叠容器在纸上应完整展开 */
+  /* 折叠内容在纸上应完整展开 */
   .collapsed {
     height: auto !important;
     max-height: none !important;
@@ -335,5 +61,70 @@
   }
   details > *:not(summary) {
     display: revert !important;
+  }
+
+  /* ---------- 3. 只隐藏「印出来必然是垃圾」的东西 ---------- */
+  /*
+   * 判断标准很窄：固定定位的浮层会重复压在每一页上，
+   * 纯交互控件在纸上是死的。除此之外一律保留。
+   */
+  #reading-progress,
+  #back-to-top-btn,
+  .notification,
+  .music-player,
+  .float-panel,
+  #settings-panel,
+  #search-panel {
+    display: none !important;
+  }
+
+  /* 固定定位元素会在每页重复出现 */
+  [style*="position: fixed"],
+  .fixed {
+    position: static !important;
+  }
+
+  /* ---------- 4. 排版 ---------- */
+  @page {
+    margin: 1.6cm 1.4cm;
+  }
+
+  html, body {
+    background: #fff !important;
+    font-size: 11pt;
+    line-height: 1.6;
+  }
+
+  /* 深色模式下打印会印出大片黑底，强制回到浅色 */
+  .dark, .dark body {
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  /* 避免元素被分页切断 */
+  .custom-md pre,
+  .custom-md figure,
+  .custom-md img,
+  .custom-md table,
+  .expressive-code,
+  .card-base {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* 标题不落在页尾 */
+  .custom-md h1,
+  .custom-md h2,
+  .custom-md h3 {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+
+  /* 正文外链在纸上无法点击，把地址跟在后面 */
+  .custom-md a[href^="http"]::after {
+    content: " (" attr(href) ")";
+    font-size: 0.85em;
+    color: #555;
+    word-break: break-all;
   }
 }

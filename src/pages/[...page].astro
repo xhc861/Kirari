@@ -2,7 +2,6 @@
 /** 首页（中文，根路径）。主体见 @components/pages/HomePage.astro。 */
 import HomePage from "@components/pages/HomePage.astro";
 import { PAGE_SIZE } from "../constants/constants";
-import { DEFAULT_LOCALE } from "../i18n/utils";
 import { getSortedPosts } from "../utils/content-utils";
 import type { GetStaticPaths } from "astro";
 
@@ -14,4 +13,4 @@ export const getStaticPaths = (async ({ paginate }) => {
 
 const { page } = Astro.props;
 ---
-<HomePage page={page} locale={DEFAULT_LOCALE} />
+<HomePage page={page}  />

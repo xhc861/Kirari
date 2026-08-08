@@ -1,6 +1,6 @@
 ---
-import { getLangFromUrl, useTranslations } from "@i18n/utils";
 
+import { i18n } from "@i18n/translation";
 import I18nKey from "../../i18n/i18nKey";
 import { getTagList } from "../../utils/content-utils";
 import { getTagUrl } from "../../utils/url-utils";
@@ -20,10 +20,8 @@ interface Props {
 const className = Astro.props.class;
 const style = Astro.props.style;
 
-// 语言由当前路由决定，组件直接从 Astro.url 推导，不必层层传 prop
-const t = useTranslations(getLangFromUrl(Astro.url));
 ---
-<WidgetLayout name={t(I18nKey.tags)} id="tags" isCollapsed={isCollapsed} collapsedHeight={COLLAPSED_HEIGHT} class={className} style={style}>
+<WidgetLayout name={i18n(I18nKey.tags)} id="tags" isCollapsed={isCollapsed} collapsedHeight={COLLAPSED_HEIGHT} class={className} style={style}>
     <div class="flex gap-2 flex-wrap">
         {tags.map(t => (
             <ButtonTag href={getTagUrl(t.name)} label={`View all posts with the ${t.name.trim()} tag`}>

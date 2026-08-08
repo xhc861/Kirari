@@ -1,12 +1,10 @@
 <script lang="ts">
-import { clientLocale, useTranslations } from "@i18n/utils";
+import { i18n } from "@i18n/translation";
 import { onMount } from "svelte";
 
 import I18nKey from "../i18n/i18nKey";
 import { getPostUrlBySlug } from "../utils/url-utils";
 
-// 语言取自页面的 <html lang>，由路由设置
-const t = useTranslations(clientLocale());
 
 
 export let tags: string[];
@@ -103,7 +101,7 @@ onMount(async () => {
                     ></div>
                 </div>
                 <div class="w-[70%] md:w-[80%] transition text-left text-50">
-                    {group.posts.length} {t(group.posts.length === 1 ? I18nKey.postCount : I18nKey.postsCount)}
+                    {group.posts.length} {i18n(group.posts.length === 1 ? I18nKey.postCount : I18nKey.postsCount)}
                 </div>
             </div>
 
