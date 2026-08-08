@@ -1,0 +1,99 @@
+---
+/**
+ * 文章阅读进度条。
+ *
+ * 贴在导航栏底沿，随滚动实时推进。长文（本站最长一篇有 56 个标题）没有进度
+ * 反馈时很容易读不下去；这条线也是页面里少数会「回应用户动作」的元素。
+ */
+---
+
+<div id="reading-progress" aria-hidden="true">
+    <div id="reading-progress-bar"></div>
+</div>
+
+<style>
+    #reading-progress {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        z-index: 60;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+    #reading-progress.active {
+        opacity: 1;
+    }
+
+    #reading-progress-bar {
+        height: 100%;
+        width: 0;
+        background: linear-gradient(
+            90deg,
+            var(--primary) 0%,
+            oklch(0.75 0.14 calc(var(--hue) + 30)) 100%
+        );
+        border-radius: 0 2px 2px 0;
+        /* 用 transform 而非 width 推进，避免每帧触发布局 */
+        transform-origin: left center;
+        will-change: transform;
+    }
+</style>
+
+<script is:inline>
+    (() => {
+        function initReadingProgress() {
+            const wrapper = document.getElementById("reading-progress");
+            const bar = document.getElementById("reading-progress-bar");
+            if (!wrapper || !bar) return;
+
+            // 只在文章页显示：没有正文容器就不要这条线
+            const article = document.getElementById("post-container");
+            if (!article) {
+                wrapper.classList.remove("active");
+                return;
+            }
+
+            bar.style.width = "100%";
+            wrapper.classList.add("active");
+
+            let ticking = false;
+
+            function update() {
+                ticking = false;
+                const rect = article.getBoundingClientRect();
+                const total = rect.height - window.innerHeight;
+                if (total <= 0) {
+                    bar.style.transform = "scaleX(1)";
+                    return;
+                }
+                const scrolled = -rect.top;
+                const ratio = Math.min(Math.max(scrolled / total, 0), 1);
+                bar.style.transform = `scaleX(${ratio})`;
+            }
+
+            function onScroll() {
+                if (!ticking) {
+                    ticking = true;
+                    requestAnimationFrame(update);
+                }
+            }
+
+            window.removeEventListener("scroll", onScroll);
+            window.addEventListener("scroll", onScroll, { passive: true });
+            window.addEventListener("resize", onScroll, { passive: true });
+            update();
+        }
+
+        if (document.readyState === "loading") {
+            document.addEventListener("DOMContentLoaded", initReadingProgress);
+        } else {
+            initReadingProgress();
+        }
+
+        // Swup 切页后 DOM 换了，重新初始化
+        document.addEventListener("swup:page:view", initReadingProgress);
+    })();
+</script>

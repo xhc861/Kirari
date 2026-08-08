@@ -1,0 +1,96 @@
+---
+/**
+ * 系列导航。当文章的 frontmatter 写了 series 时，在正文上方展示整个系列的目录，
+ * 并标出当前是第几篇 —— 连载文章靠「上一篇/下一篇」串联很容易走丢。
+ */
+import type { CollectionEntry } from "astro:content";
+import { getPostUrlBySlug } from "@utils/url-utils";
+
+interface Props {
+	series: string;
+	posts: CollectionEntry<"posts">[];
+	currentId: string;
+}
+const { series, posts, currentId } = Astro.props;
+const index = posts.findIndex((p) => p.id === currentId);
+---
+
+{posts.length > 1 && (
+<div class="series-nav card-base px-5 py-4 mb-6 onload-animation">
+    <div class="series-head">
+        <span class="series-badge">系列</span>
+        <span class="series-name">{series}</span>
+        <span class="series-progress">
+            第 {index + 1} / {posts.length} 篇
+        </span>
+    </div>
+
+    <ol class="series-list">
+        {posts.map((p, i) => (
+            <li class:list={["series-item", { current: p.id === currentId }]}>
+                <span class="series-index">{i + 1}</span>
+                {p.id === currentId ? (
+                    <span class="series-title current-title">{p.data.title}</span>
+                ) : (
+                    <a href={getPostUrlBySlug(p.id)} class="series-title">{p.data.title}</a>
+                )}
+            </li>
+        ))}
+    </ol>
+</div>
+)}
+
+<style>
+    @reference "../styles/theme.css";
+
+    .series-head {
+        @apply flex items-center gap-2 flex-wrap mb-3;
+    }
+    .series-badge {
+        @apply text-xs font-bold px-2 py-0.5 rounded;
+        background: var(--primary);
+        color: var(--card-bg);
+    }
+    .series-name {
+        @apply font-bold text-90;
+    }
+    .series-progress {
+        @apply text-sm text-50 ml-auto;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .series-list {
+        @apply flex flex-col gap-0.5 m-0 p-0;
+        list-style: none;
+    }
+    .series-item {
+        @apply flex items-baseline gap-3 rounded-md px-2 py-1.5 transition;
+    }
+    .series-item:hover:not(.current) {
+        background: var(--btn-plain-bg-hover);
+    }
+    .series-item.current {
+        background: color-mix(in oklab, var(--primary) 12%, transparent);
+    }
+
+    .series-index {
+        @apply text-sm text-30 shrink-0;
+        font-variant-numeric: tabular-nums;
+        min-width: 1.25rem;
+    }
+    .series-item.current .series-index {
+        color: var(--primary);
+        font-weight: 700;
+    }
+
+    .series-title {
+        @apply text-75 transition;
+    }
+    a.series-title:hover {
+        color: var(--primary);
+    }
+    .current-title {
+        @apply font-semibold;
+        color: var(--primary);
+    }
+</style>

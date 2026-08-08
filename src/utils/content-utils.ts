@@ -47,6 +47,69 @@ export async function getSortedPostsList(): Promise<PostForList[]> {
 
 	return sortedPostsList;
 }
+/**
+ * 相关文章。
+ *
+ * 按标签重合度打分，分类相同再加权。纯时间顺序的「上一篇/下一篇」跳转往往
+ * 跨越完全无关的主题，这里给读者一条按内容延伸的路径。
+ */
+export async function getRelatedPosts(
+	current: CollectionEntry<"posts">,
+	limit = 3,
+): Promise<CollectionEntry<"posts">[]> {
+	const all = await getRawSortedPosts();
+	const currentTags = new Set(current.data.tags);
+	const currentCategory = (current.data.category ?? "").trim();
+
+	const scored = all
+		.filter((p) => p.id !== current.id)
+		.map((p) => {
+			let score = 0;
+			for (const t of p.data.tags) {
+				if (currentTags.has(t)) score += 2;
+			}
+			const cat = (p.data.category ?? "").trim();
+			if (currentCategory && cat === currentCategory) score += 1;
+			return { post: p, score };
+		})
+		.filter((x) => x.score > 0);
+
+	scored.sort((a, b) => {
+		if (b.score !== a.score) return b.score - a.score;
+		// 同分时较新的排前面
+		return (
+			new Date(b.post.data.published).getTime() -
+			new Date(a.post.data.published).getTime()
+		);
+	});
+
+	return scored.slice(0, limit).map((x) => x.post);
+}
+
+/**
+ * 同系列的文章，按 order 升序（缺省时按发布时间）。
+ * 用于在文章页展示「本系列第 N 篇」及整个系列目录。
+ */
+export async function getSeriesPosts(
+	series: string,
+): Promise<CollectionEntry<"posts">[]> {
+	if (!series) return [];
+	const all = await getRawSortedPosts();
+	return all
+		.filter((p) => p.data.series === series)
+		.sort((a, b) => {
+			const ao = a.data.order;
+			const bo = b.data.order;
+			if (ao != null && bo != null) return ao - bo;
+			if (ao != null) return -1;
+			if (bo != null) return 1;
+			return (
+				new Date(a.data.published).getTime() -
+				new Date(b.data.published).getTime()
+			);
+		});
+}
+
 export type Tag = {
 	name: string;
 	count: number;
