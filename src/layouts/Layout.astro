@@ -24,6 +24,12 @@ import {
 } from "../constants/constants";
 import { defaultFavicons } from "../constants/icon";
 import type { Favicon } from "../types/config";
+import {
+	getLangFromUrl,
+	LOCALE_HTML_LANG,
+	LOCALES,
+	withLangPrefix,
+} from "../i18n/utils";
 import { resolveOgImage } from "../utils/og-utils";
 import { pathsEqual, url } from "../utils/url-utils";
 import "katex/dist/katex.css";
@@ -78,6 +84,20 @@ if (!lang) {
 	lang = `${siteConfig.lang}`;
 }
 const siteLang = lang.replace("_", "-");
+
+/*
+ * hreflang 互指：告诉搜索引擎这几个 URL 是同一内容的不同语言版本，
+ * 否则它们会被当成互相重复的独立页面。x-default 指向中文原版。
+ */
+const currentLang = getLangFromUrl(Astro.url);
+const altLinks = LOCALES.map((locale) => ({
+	hreflang: LOCALE_HTML_LANG[locale],
+	href: new URL(withLangPrefix(Astro.url.pathname, locale), Astro.site ?? Astro.url).href,
+}));
+const defaultHref = new URL(
+	withLangPrefix(Astro.url.pathname, "zh_CN"),
+	Astro.site ?? Astro.url,
+).href;
 
 const bannerOffsetByPosition = {
 	top: `${BANNER_HEIGHT_EXTEND}vh`,
@@ -163,6 +183,11 @@ const bannerOffset =
 
 
 		<slot name="head"></slot>
+
+		{altLinks.map((alt) => (
+			<link rel="alternate" hreflang={alt.hreflang} href={alt.href} />
+		))}
+		<link rel="alternate" hreflang="x-default" href={defaultHref} />
 
 		<link rel="alternate" type="application/rss+xml" title={profileConfig.name} href={`${Astro.site}rss.xml`}/>
 		<link rel="stylesheet" href="/src/styles/print.css" media="print" />
