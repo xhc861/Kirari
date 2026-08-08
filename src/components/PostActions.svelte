@@ -25,10 +25,35 @@ let laserElement: HTMLDivElement | null = null;
 // 聚光灯功能
 let spotlightEnabled = false;
 
-function addFavorite() {
-	const isMac = navigator.platform.toUpperCase().indexOf("MAC") >= 0;
-	const shortcut = isMac ? "Cmd+D" : "Ctrl+D";
-	alert(`请按 ${shortcut} 将本页添加到书签`);
+/*
+ * 收藏。
+ *
+ * 浏览器没有任何 API 能让网页把自己加进书签 —— window.external.AddFavorite（IE）
+ * 与 window.sidebar.addPanel（旧 Firefox）都已移除。所以「直接添加」做不到。
+ *
+ * 原实现弹一个 alert 让用户自己按 Ctrl+D：既打断操作，又等于把按钮的责任推回去。
+ * 改成做一件真事 —— 复制链接 —— 并把快捷键作为顺带的提示，不阻塞。
+ */
+let bookmarkHint = "";
+let bookmarkTimer: ReturnType<typeof setTimeout> | null = null;
+
+function shortcutLabel(): string {
+	const ua = navigator.userAgent;
+	return /Mac|iPhone|iPad/.test(ua) ? "⌘D" : "Ctrl+D";
+}
+
+async function addFavorite() {
+	try {
+		await navigator.clipboard.writeText(window.location.href);
+		bookmarkHint = `链接已复制 · ${shortcutLabel()} 可加书签`;
+	} catch {
+		// 非安全上下文或用户拒绝授权时，剪贴板不可用
+		bookmarkHint = `按 ${shortcutLabel()} 加入书签`;
+	}
+	if (bookmarkTimer) clearTimeout(bookmarkTimer);
+	bookmarkTimer = setTimeout(() => {
+		bookmarkHint = "";
+	}, 2600);
 }
 
 async function handleShare() {
@@ -113,20 +138,21 @@ function toggleSpotlight() {
 }
 
 onDestroy(() => {
+	if (bookmarkTimer) clearTimeout(bookmarkTimer);
 	removeLaserPointer();
 });
 </script>
 
 <div class="post-actions">
   <button 
-    class="action-btn bookmark-btn" 
+    class="action-btn bookmark-btn"
     on:click={addFavorite}
-    aria-label="添加到书签"
+    aria-label="复制本页链接，便于加入书签"
   >
     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
     </svg>
-    <span>收藏</span>
+    <span>{bookmarkHint || "收藏"}</span>
   </button>
   
   <button

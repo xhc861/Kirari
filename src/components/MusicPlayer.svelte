@@ -27,17 +27,42 @@ onMount(() => {
 		audio.volume = volume;
 	}
 
-	// 从 localStorage 加载自定义播放列表
+	/*
+	 * 播放列表来源，优先级从高到低：
+	 *   1. localStorage —— 用户在设置面板里加的歌，属于个人偏好
+	 *   2. public/music-playlist.json —— 站点自带的歌单
+	 *   3. 组件传入的占位项
+	 *
+	 * 第 2 条原本是缺的：播放器只读 localStorage，那个 JSON 从没被读过，
+	 * 站长编辑它不会有任何效果 —— 而展板其他模块全都读各自的 JSON。
+	 */
 	const savedPlaylist = localStorage.getItem("musicPlaylist");
+	let loadedFromStorage = false;
 	if (savedPlaylist) {
 		try {
 			const customPlaylist = JSON.parse(savedPlaylist);
 			if (customPlaylist && customPlaylist.length > 0) {
 				playlist = customPlaylist;
+				loadedFromStorage = true;
 			}
 		} catch (e) {
 			console.error("Failed to load custom playlist:", e);
 		}
+	}
+
+	if (!loadedFromStorage) {
+		fetch("/music-playlist.json", { cache: "no-store" })
+			.then((r) => (r.ok ? r.json() : null))
+			.then((data) => {
+				// 只认有实际音频地址的条目，避免占位项挤掉真实歌单
+				const usable = Array.isArray(data)
+					? data.filter((s) => s && typeof s.src === "string" && s.src.trim())
+					: [];
+				if (usable.length > 0) playlist = usable;
+			})
+			.catch(() => {
+				/* 文件缺失或格式错误时保持传入的占位项 */
+			});
 	}
 
 	// 监听播放列表更新
