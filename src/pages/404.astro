@@ -1,0 +1,91 @@
+---
+import MainGridLayout from "@layouts/MainGridLayout.astro";
+import { getSortedPosts } from "@utils/content-utils";
+import { getPostUrlBySlug, url } from "@utils/url-utils";
+
+// 走错路的人多半还想看点别的，所以把最近几篇文章直接摆出来，
+// 而不是只丢一句「页面不存在」让他们自己找回去。
+const recent = (await getSortedPosts()).slice(0, 3);
+---
+
+<MainGridLayout title="页面走丢了" description="没有找到这个页面">
+    <div class="card-base px-6 md:px-9 py-10 md:py-14">
+
+        <div class="lost-mark" aria-hidden="true">
+            <span class="digit">4</span>
+            <span class="orb"></span>
+            <span class="digit">4</span>
+        </div>
+
+        <h1 class="text-2xl md:text-3xl font-bold text-90 text-center mb-3">
+            这里没有东西
+        </h1>
+        <p class="text-75 text-center max-w-md mx-auto mb-8">
+            链接可能写错了，或者这篇内容已经被移走。总之不是你的问题。
+        </p>
+
+        <div class="flex flex-wrap gap-3 justify-center mb-10">
+            <a href={url('/')} class="btn-regular px-5 py-2.5 rounded-lg font-medium">回首页</a>
+            <a href={url('/archive/')} class="btn-card px-5 py-2.5 rounded-lg font-medium border border-[var(--line-divider)]">翻归档</a>
+        </div>
+
+        {recent.length > 0 && (
+            <div class="recent-block">
+                <div class="text-50 text-sm mb-3 text-center">要不看看这几篇</div>
+                <div class="flex flex-col gap-2">
+                    {recent.map((post) => (
+                        <a href={getPostUrlBySlug(post.id)}
+                           class="btn-card px-4 py-3 rounded-lg flex items-center justify-between gap-4 group">
+                            <span class="text-75 font-medium truncate">{post.data.title}</span>
+                            <span class="text-30 text-sm shrink-0 transition group-hover:translate-x-1">→</span>
+                        </a>
+                    ))}
+                </div>
+            </div>
+        )}
+
+    </div>
+</MainGridLayout>
+
+<style>
+    @reference "../styles/theme.css";
+
+    .lost-mark {
+        @apply flex items-center justify-center gap-3 mb-6;
+    }
+
+    .digit {
+        font-size: clamp(3.5rem, 12vw, 5.5rem);
+        font-weight: 800;
+        line-height: 1;
+        color: var(--primary);
+        opacity: 0.85;
+    }
+
+    /* 中间那个「0」是个飘着的圆点，比干写 404 有点意思 */
+    .orb {
+        width: clamp(2.6rem, 9vw, 4rem);
+        height: clamp(2.6rem, 9vw, 4rem);
+        border-radius: 9999px;
+        border: 0.32em solid var(--primary);
+        opacity: 0.85;
+        animation: orb-drift 3.4s ease-in-out infinite;
+    }
+
+    @keyframes orb-drift {
+        0%, 100% { transform: translateY(-0.18em); }
+        50% { transform: translateY(0.18em); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .orb { animation: none; }
+        .group:hover span { transform: none; }
+    }
+
+    .recent-block {
+        max-width: 32rem;
+        margin: 0 auto;
+        padding-top: 1.5rem;
+        border-top: 1px dashed var(--line-divider);
+    }
+</style>

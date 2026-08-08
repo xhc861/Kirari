@@ -1,6 +1,6 @@
 <script lang="ts">
 import { onDestroy } from "svelte";
-import ShareModal from "./ShareModal.svelte";
+import type { ComponentType } from "svelte";
 
 export let slug: string;
 export let title: string;
@@ -9,6 +9,14 @@ export let words: number;
 export let minutes: number;
 
 let showShareModal = false;
+
+/*
+ * ShareModal 依赖 qrcode 与 jsbarcode 两个库，静态引入会让它们进入每篇文章的
+ * 首屏包（实测 PostActions 产物 94 KB）。分享弹窗默认是关着的，所以改成
+ * 点击时才动态加载。
+ */
+let ShareModal: ComponentType | null = null;
+let shareLoading = false;
 
 // 激光笔功能
 let laserPointerEnabled = false;
@@ -23,7 +31,15 @@ function addFavorite() {
 	alert(`请按 ${shortcut} 将本页添加到书签`);
 }
 
-function handleShare() {
+async function handleShare() {
+	if (!ShareModal) {
+		shareLoading = true;
+		try {
+			ShareModal = (await import("./ShareModal.svelte")).default;
+		} finally {
+			shareLoading = false;
+		}
+	}
 	showShareModal = true;
 }
 
@@ -113,19 +129,20 @@ onDestroy(() => {
     <span>收藏</span>
   </button>
   
-  <button 
-    class="action-btn share-btn" 
+  <button
+    class="action-btn share-btn"
     on:click={handleShare}
+    disabled={shareLoading}
     aria-label="分享文章"
   >
-    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class:spinning={shareLoading}>
       <circle cx="18" cy="5" r="3"></circle>
       <circle cx="6" cy="12" r="3"></circle>
       <circle cx="18" cy="19" r="3"></circle>
       <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
       <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
     </svg>
-    <span>分享</span>
+    <span>{shareLoading ? "准备中" : "分享"}</span>
   </button>
   
   <button 
@@ -171,14 +188,17 @@ onDestroy(() => {
   </button>
 </div>
 
-<ShareModal 
-  bind:show={showShareModal} 
-  {title} 
-  {slug} 
-  {published}
-  {words}
-  {minutes}
-/>
+{#if ShareModal}
+  <svelte:component
+    this={ShareModal}
+    bind:show={showShareModal}
+    {title}
+    {slug}
+    {published}
+    {words}
+    {minutes}
+  />
+{/if}
 
 <style>
   .post-actions {
@@ -210,6 +230,25 @@ onDestroy(() => {
     border-color: var(--primary);
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+
+  .action-btn:disabled {
+    cursor: progress;
+    opacity: 0.7;
+  }
+
+  /* 分享弹窗按需加载时的等待反馈 */
+  .spinning {
+    animation: share-spin 0.8s linear infinite;
+  }
+
+  @keyframes share-spin {
+    to { transform: rotate(360deg); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .spinning { animation: none; }
+    .action-btn:hover { transform: none; }
   }
   
   .action-btn:active {
