@@ -17,7 +17,7 @@ export const LinkPresets: { [key in LinkPreset]: NavBarLink } = {
 	},
 	[LinkPreset.Other]: {
 		name: "展板",
-		url: "/gallery/",
+		url: "/dashboard/",
 	},
 	[LinkPreset.friend]: {
 		name: "友链&外站",

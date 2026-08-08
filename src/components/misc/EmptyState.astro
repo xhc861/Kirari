@@ -1,0 +1,65 @@
+---
+/**
+ * 空状态。
+ *
+ * Kirari 是可以给别人用的模板，别人第一次跑起来时首页是空的 —— 与其给一片
+ * 空白，不如直接告诉他下一步该做什么。
+ */
+interface Props {
+	title: string;
+	hint?: string;
+	command?: string;
+}
+const { title, hint, command } = Astro.props;
+---
+
+<div class="empty-state card-base px-6 py-14 flex flex-col items-center text-center">
+    <div class="empty-mark" aria-hidden="true">
+        <span class="line line-a"></span>
+        <span class="line line-b"></span>
+        <span class="line line-c"></span>
+    </div>
+
+    <h2 class="text-xl font-bold text-90 mb-2">{title}</h2>
+    {hint && <p class="text-75 max-w-sm mb-5">{hint}</p>}
+    {command && (
+        <code class="empty-cmd">{command}</code>
+    )}
+    <slot />
+</div>
+
+<style>
+    @reference "../../styles/theme.css";
+
+    /* 三条长短不一的横线，像一页还没写字的稿纸 */
+    .empty-mark {
+        @apply flex flex-col items-center gap-2 mb-6;
+        width: 5.5rem;
+    }
+    .line {
+        height: 0.5rem;
+        border-radius: 9999px;
+        background: var(--btn-regular-bg);
+        width: 100%;
+        animation: line-pulse 2.6s ease-in-out infinite;
+    }
+    .line-a { width: 100%; }
+    .line-b { width: 72%; animation-delay: 0.25s; }
+    .line-c { width: 45%; animation-delay: 0.5s; }
+
+    @keyframes line-pulse {
+        0%, 100% { opacity: 0.55; }
+        50% { opacity: 1; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .line { animation: none; }
+    }
+
+    .empty-cmd {
+        @apply text-sm px-3 py-1.5 rounded-md;
+        font-family: "JetBrains Mono Variable", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        background: var(--codeblock-bg);
+        color: var(--primary);
+    }
+</style>

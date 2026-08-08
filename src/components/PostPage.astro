@@ -2,6 +2,7 @@
 import type { CollectionEntry } from "astro:content";
 import { getPostUrlBySlug } from "@utils/url-utils";
 import AnnouncementWrapper from "./AnnouncementWrapper.astro";
+import EmptyState from "./misc/EmptyState.astro";
 import PostCard from "./PostCard.astro";
 
 const { page } = Astro.props;
@@ -11,6 +12,16 @@ const interval = 50;
 ---
 <!-- 公告组件 - 仅在第一页显示 -->
 {page.currentPage === 1 && <AnnouncementWrapper />}
+
+{page.data.length === 0 && (
+    <div class="mb-4 onload-animation">
+        <EmptyState
+            title="还没有文章"
+            hint="这里会列出你写的文章。新建一篇，然后刷新看看。"
+            command="pnpm new-post 我的第一篇"
+        />
+    </div>
+)}
 
 <div class="transition flex flex-col rounded-[var(--radius-large)] bg-[var(--card-bg)] py-1 md:py-0 md:bg-transparent md:gap-4 mb-4">
     {page.data.map((entry: CollectionEntry<"posts">) => (
