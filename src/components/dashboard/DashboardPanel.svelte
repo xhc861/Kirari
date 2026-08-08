@@ -6,7 +6,6 @@ import CountdownModule from "./CountdownModule.svelte";
 import ExtraFeaturesModule from "./ExtraFeaturesModule.svelte";
 import MicroNewsModule from "./MicroNewsModule.svelte";
 import ScoreboardModule from "./ScoreboardModule.svelte";
-import SportsRecordModule from "./SportsRecordModule.svelte";
 import TodoModule from "./TodoModule.svelte";
 
 interface Countdown {
@@ -23,7 +22,7 @@ $: hasCountdowns = countdowns.length > 0;
 
 async function loadCountdowns() {
 	try {
-		const response = await fetch("/countdowns.json");
+		const response = await fetch("/countdowns.json", { cache: "no-store" });
 		const data = await response.json();
 		countdowns = Array.isArray(data) ? data : [];
 	} catch {
@@ -43,14 +42,10 @@ onMount(() => {
   class="dashboard-container"
   class:no-countdown={countdownsChecked && !hasCountdowns}
 >
-  <!-- 顶部：日历 / 体育 / 可选倒计时；无倒计时时压缩与微新闻的间距 -->
+  <!-- 顶部：日历 / 可选倒计时；无倒计时时压缩与微新闻的间距 -->
   <div class="primary-stack">
     <div class="calendar-section">
       <CalendarModule />
-    </div>
-
-    <div class="sports-record-section">
-      <SportsRecordModule />
     </div>
 
     {#if hasCountdowns}
@@ -116,13 +111,12 @@ onMount(() => {
   .calendar-section,
   .countdown-section,
   .micro-news-section,
-  .sports-record-section,
   .extra-features-section,
   .ua-section {
     width: 100%;
   }
 
-  /* 子模块无内容时不占 gap（体育成绩等为空时） */
+  /* 子模块无内容时不占 gap */
   .primary-stack > :global(:empty) {
     display: none;
   }
