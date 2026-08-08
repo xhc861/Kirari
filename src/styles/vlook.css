@@ -1,0 +1,167 @@
+@reference "./theme.css";
+
+/*
+ * VLOOK 语法的配套样式。
+ *
+ * 颜色通过 --vk-c / --vk-c-dark 两个变量传入（由 remark 插件写在内联 style 上），
+ * 这里只负责在亮暗模式间选用哪一个 —— 避免把只适配单一主题的颜色写死进 HTML。
+ */
+
+.custom-md {
+    /* ---------- 色号着色 ---------- */
+    .vk-color {
+        color: var(--vk-c);
+    }
+    .vk-color.vk-solid {
+        background: var(--vk-c);
+        color: var(--card-bg);
+        padding: 0.05em 0.35em;
+        border-radius: 0.25rem;
+    }
+
+    /* 独占一行的色号会给整段/整个引用块着色 */
+    .vk-colored.vk-outline {
+        border-left: 3px solid var(--vk-c);
+        padding-left: 0.9em;
+    }
+    .vk-colored.vk-solid {
+        background: color-mix(in oklab, var(--vk-c) 12%, transparent);
+        border-left: 3px solid var(--vk-c);
+        padding: 0.6em 0.9em;
+        border-radius: 0 0.5rem 0.5rem 0;
+    }
+
+    /* ---------- 高亮 ---------- */
+    mark {
+        background: color-mix(in oklab, var(--primary) 22%, transparent);
+        color: inherit;
+        padding: 0.05em 0.2em;
+        border-radius: 0.2rem;
+    }
+
+    /* ---------- 题注 ---------- */
+    .vk-caption {
+        @apply text-sm text-50 text-center;
+        margin: -0.5rem 0 1.5rem;
+    }
+    .vk-caption-no {
+        color: var(--primary);
+        font-weight: 600;
+        margin-right: 0.5em;
+    }
+
+    /* ---------- 标签 ---------- */
+    .vk-tag {
+        @apply text-sm;
+        display: inline-block;
+        padding: 0.1em 0.55em;
+        border-radius: 0.3rem;
+        background: var(--btn-regular-bg);
+        color: var(--btn-content);
+        font-family: inherit;
+    }
+
+    /* ---------- 注音 ---------- */
+    .vk-ruby rt {
+        @apply text-50;
+        font-size: 0.55em;
+    }
+
+    /* ---------- 可折叠引用块 ---------- */
+    .vk-collapse {
+        background: var(--codeblock-bg);
+        border-radius: 0.5rem;
+        padding: 0.5rem 1rem;
+        margin: 1rem 0;
+    }
+    .vk-collapse-title {
+        @apply font-semibold text-90;
+        cursor: pointer;
+        list-style: none;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .vk-collapse-title::-webkit-details-marker { display: none; }
+    .vk-collapse-title::before {
+        content: "▸";
+        color: var(--primary);
+        transition: transform 0.2s ease;
+        display: inline-block;
+    }
+    .vk-collapse[open] > .vk-collapse-title::before {
+        transform: rotate(90deg);
+    }
+
+    /* ---------- 图片 #magic ---------- */
+    .vk-img { max-width: 100%; }
+    .vk-img-scaled { height: auto; }
+
+    .vk-img-icon {
+        display: inline;
+        height: 1em;
+        width: auto;
+        vertical-align: -0.12em;
+        margin: 0 0.15em;
+    }
+    .vk-img-icon2x {
+        display: inline;
+        height: 2em;
+        width: auto;
+        vertical-align: -0.3em;
+    }
+    .vk-img-logo { display: inline-block; }
+    .vk-img-left  { float: left;  margin: 0.2rem 1rem 0.6rem 0; }
+    .vk-img-right { float: right; margin: 0.2rem 0 0.6rem 1rem; }
+    .vk-img-border { border: 1px solid var(--line-divider); }
+    .vk-img-round { border-radius: 0.75rem; }
+    .vk-img-round2s { border-radius: 9999px; }
+    .vk-img-padding { padding: 20px; box-sizing: border-box; }
+    .vk-img-line,
+    .vk-img-block {
+        background-color: var(--codeblock-bg);
+        background-image:
+            linear-gradient(to right, var(--line-divider) 1px, transparent 1px),
+            linear-gradient(to bottom, var(--line-divider) 1px, transparent 1px);
+        background-size: 12px 12px;
+    }
+
+    .vk-img-invert { filter: invert(1); }
+    .vk-img-blur   { filter: blur(4px); }
+    .vk-img-aged   { filter: sepia(0.75) contrast(0.95); }
+    .vk-img-gray   { filter: grayscale(1); }
+    .vk-img-restore { transition: filter 0.28s ease; }
+    .vk-img-restore:hover { filter: none; }
+
+    .vk-img-rot180 { transform: rotate(180deg); }
+    .vk-img-fliph  { transform: scaleX(-1); }
+    .vk-img-flipv  { transform: scaleY(-1); }
+}
+
+/* 深色模式下改用 dark 那套色值 */
+:global(.dark) .custom-md {
+    .vk-color,
+    .vk-colored {
+        --vk-c: var(--vk-c-dark);
+    }
+}
+
+/*
+ * VLOOK 从 Typora 导出的 HTML 会带自己的水印/品牌标记。
+ * 如果把那样的 HTML 片段贴进文章，这里把它隐藏掉。
+ */
+.custom-md {
+    .vlook-watermark,
+    .md-watermark,
+    [class*="watermark"],
+    #vlook-plugin-info,
+    .vlook-brand,
+    .vlook-copyright {
+        display: none !important;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .custom-md .vk-collapse-title::before,
+    .custom-md .vk-img-restore { transition: none; }
+}

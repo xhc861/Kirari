@@ -24,6 +24,8 @@ import { GithubCardComponent } from "./src/plugins/rehype-component-github-card.
 import { parseDirectiveNode } from "./src/plugins/remark-directive-rehype.js";
 import { remarkExcerpt } from "./src/plugins/remark-excerpt.js";
 import { remarkReadingTime } from "./src/plugins/remark-reading-time.mjs";
+import { rehypeVLookImage } from "./src/plugins/vlook/rehype-vlook-image.js";
+import { remarkVLook } from "./src/plugins/vlook/remark-vlook.js";
 import { pluginCustomCopyButton } from "./src/plugins/expressive-code/custom-copy-button.js";
 
 // https://astro.build/config
@@ -118,12 +120,18 @@ export default defineConfig({
 				remarkExcerpt,
 				remarkGithubAdmonitionsToDirectives,
 				remarkDirective,
+				// VLOOK 语法兼容。必须排在 sectionize 之前 ——
+				// sectionize 会把标题包进 section，之后就认不出
+				// 「引用块首行是六级标题」这种可折叠写法了。
+				remarkVLook,
 				remarkSectionize,
 				parseDirectiveNode,
 			],
 			rehypePlugins: [
 				rehypeKatex,
 				rehypeSlug,
+				// 剥离图片 URL 上的 VLOOK #magic 锚点并转成样式类
+				rehypeVLookImage,
 				[
 					rehypeComponents,
 					{
