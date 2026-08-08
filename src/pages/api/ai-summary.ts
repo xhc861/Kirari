@@ -16,10 +16,12 @@ export const POST: APIRoute = async ({ request }) => {
 			);
 		}
 
+		// Astro 6 起，非 PUBLIC_ 前缀的变量在 import.meta.env 上会被构建期内联，
+		// 不再回落为 process.env 引用。服务端密钥必须直接读 process.env 才能拿到运行时值。
 		const API_URL =
-			import.meta.env.AI_API_URL || "https://api.suanli.cn/v1/chat/completions";
-		const API_KEY = import.meta.env.AI_API_KEY;
-		const MODEL = import.meta.env.AI_MODEL || "Qwen/Qwen3-VL-32B-Thinking";
+			process.env.AI_API_URL || "https://api.suanli.cn/v1/chat/completions";
+		const API_KEY = process.env.AI_API_KEY;
+		const MODEL = process.env.AI_MODEL || "Qwen/Qwen3-VL-32B-Thinking";
 
 		if (!API_KEY) {
 			return new Response(JSON.stringify({ error: "API Key not configured" }), {
