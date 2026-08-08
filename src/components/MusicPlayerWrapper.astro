@@ -10,5 +10,6 @@ const playlist = [
 ];
 ---
 
-<MusicPlayer playlist={playlist} client:load />
+<!-- client:idle：音乐从来不是首屏必需，让它等主线程空下来再加载 -->
+<MusicPlayer playlist={playlist} client:idle />
 

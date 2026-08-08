@@ -234,4 +234,53 @@
   h1, h2, h3, h4, h5, h6 {
     page-break-after: avoid;
   }
+
+  /*
+   * 本轮新增的组件同样不该出现在纸上。
+   * 进度条、语言切换、评论数是导航性质的；相关文章与系列目录在纸上是死链接，
+   * 印出来只是浪费墨。文章简述保留 —— 它属于正文内容。
+   */
+  #reading-progress,
+  .lang-switch,
+  .comment-count,
+  .related,
+  .series-nav,
+  #comment,
+  .giscus-container,
+  .post-actions,
+  .reading-settings {
+    display: none !important;
+  }
+
+  /* 简述保留，但去掉屏幕上的装饰色块，省墨且更清晰 */
+  .post-summary {
+    background: none !important;
+    border-left: 2px solid #999 !important;
+    padding-left: 0.8em !important;
+  }
+
+  /* 链接在纸上无法点击，把地址跟在后面 */
+  .custom-md a[href^="http"]::after {
+    content: " (" attr(href) ")";
+    font-size: 0.85em;
+    color: #666;
+    word-break: break-all;
+  }
+
+  /* 代码块与图片避免被分页切断 */
+  .custom-md pre,
+  .custom-md figure,
+  .custom-md img,
+  .expressive-code {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* 标题不要落在页尾 */
+  .custom-md h1,
+  .custom-md h2,
+  .custom-md h3 {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
 }
