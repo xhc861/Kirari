@@ -14,6 +14,7 @@ const { name, desc, avatar, url, pin = false } = Astro.props;
 	href={url}
 	target="_blank"
 	rel="noopener noreferrer"
+	data-friend-url={url}
 	class={`friend-card group relative overflow-hidden rounded-xl transition-all duration-300 ${
 		pin ? "" : ""
 	}`}

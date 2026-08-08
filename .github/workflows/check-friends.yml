@@ -1,0 +1,35 @@
+name: 友链探活
+
+# 友链站点关站、换域名是常态，每周自动巡检一次，结果提交回仓库。
+on:
+  schedule:
+    # 每周一 03:17 UTC（避开整点，减少与其他 CI 撞车）
+    - cron: "17 3 * * 1"
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: 探测友链
+        run: node scripts/check-friends.mjs
+
+      - name: 提交结果
+        run: |
+          if git diff --quiet -- public/friends-status.json; then
+            echo "友链状态无变化，跳过提交"
+            exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add public/friends-status.json
+          git commit -m "chore: 更新友链探活结果"
+          git push

@@ -161,8 +161,60 @@ const sortedFriends = [...pinnedFriends, ...shuffledNonPinnedFriends];
 	</div>
 </MainGridLayout>
 
+<script is:inline>
+/*
+ * 友链存活标记。
+ *
+ * 数据来自 public/friends-status.json（由 scripts/check-friends.mjs 生成，
+ * GitHub Actions 每周巡检一次）。
+ *
+ * 只对确证失效的（HTTP 404 / 410）加标记 —— 403、超时、网络错误都可能是
+ * 对方防爬或探测端网络问题，据此把人家标成「已失效」是不负责任的。
+ */
+(async () => {
+  try {
+    const res = await fetch("/friends-status.json", { cache: "no-store" });
+    if (!res.ok) return;
+    const data = await res.json();
+    if (!Array.isArray(data?.results)) return;
+
+    const dead = new Set(
+      data.results.filter((r) => r && r.status === "dead").map((r) => r.url)
+    );
+    if (dead.size === 0) return;
+
+    for (const card of document.querySelectorAll("[data-friend-url]")) {
+      if (dead.has(card.getAttribute("data-friend-url"))) {
+        card.classList.add("friend-dead");
+        card.setAttribute("title", "该站点最近一次巡检返回 404，可能已关闭");
+      }
+    }
+  } catch {
+    /* 状态文件缺失时什么都不做，友链照常显示 */
+  }
+})();
+</script>
+
 <style>
 	@reference "../styles/theme.css";
+
+	/* 确证失效的友链：淡化并加一枚角标，但仍可点击 */
+	:global(.friend-dead) {
+		opacity: 0.55;
+		filter: grayscale(0.7);
+	}
+	:global(.friend-dead)::after {
+		content: "疑似失效";
+		position: absolute;
+		top: 0.5rem;
+		right: 0.5rem;
+		z-index: 20;
+		font-size: 0.7rem;
+		padding: 0.1rem 0.4rem;
+		border-radius: 0.25rem;
+		background: oklch(0.55 0.18 25);
+		color: white;
+	}
 
 	:global(.dark) .group:hover {
 		@apply shadow-lg;
