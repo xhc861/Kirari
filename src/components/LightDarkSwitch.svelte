@@ -1,7 +1,7 @@
 <script lang="ts">
+import { clientLocale, useTranslations } from "@i18n/utils";
 import { AUTO_MODE, DARK_MODE, LIGHT_MODE } from "@constants/constants";
 import I18nKey from "@i18n/i18nKey";
-import { i18n } from "@i18n/translation";
 import Icon from "@iconify/svelte";
 import {
 	applyThemeToDocument,
@@ -10,6 +10,10 @@ import {
 } from "@utils/setting-utils";
 import { onMount } from "svelte";
 import type { LIGHT_DARK_MODE } from "@/types/config";
+
+// 语言取自页面的 <html lang>，由路由设置
+const t = useTranslations(clientLocale());
+
 
 // Optional prop to fix Astro type checking with Svelte 5
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -86,21 +90,21 @@ function hidePanel() {
                     on:click={() => switchScheme(LIGHT_MODE)}
             >
                 <Icon icon="material-symbols:wb-sunny-outline-rounded" class="text-[1.25rem] mr-3"></Icon>
-                {i18n(I18nKey.lightMode)}
+                {t(I18nKey.lightMode)}
             </button>
             <button class="flex transition whitespace-nowrap items-center justify-start! w-full btn-plain scale-animation rounded-lg h-9 px-3 font-medium active:scale-95 mb-0.5"
                     class:current-theme-btn={mode === DARK_MODE}
                     on:click={() => switchScheme(DARK_MODE)}
             >
                 <Icon icon="material-symbols:dark-mode-outline-rounded" class="text-[1.25rem] mr-3"></Icon>
-                {i18n(I18nKey.darkMode)}
+                {t(I18nKey.darkMode)}
             </button>
             <button class="flex transition whitespace-nowrap items-center justify-start! w-full btn-plain scale-animation rounded-lg h-9 px-3 font-medium active:scale-95"
                     class:current-theme-btn={mode === AUTO_MODE}
                     on:click={() => switchScheme(AUTO_MODE)}
             >
                 <Icon icon="material-symbols:radio-button-partial-outline" class="text-[1.25rem] mr-3"></Icon>
-                {i18n(I18nKey.systemMode)}
+                {t(I18nKey.systemMode)}
             </button>
         </div>
     </div>

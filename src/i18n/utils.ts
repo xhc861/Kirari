@@ -94,3 +94,17 @@ export function configLocale(): Locale {
 	return (LOCALES.find((l) => l.toLowerCase() === lang) ??
 		DEFAULT_LOCALE) as Locale;
 }
+
+/**
+ * 客户端组件（Svelte）取词。
+ *
+ * Svelte 组件在浏览器里运行，拿不到 Astro.url；但页面的 <html lang> 已经由
+ * 路由正确设置好了，直接读它即可 —— 不必给每个组件层层传 locale。
+ * SSR 阶段没有 document，回落到默认语言。
+ */
+export function clientLocale(): Locale {
+	if (typeof document === "undefined") return DEFAULT_LOCALE;
+	const raw = document.documentElement.lang.toLowerCase().replace("-", "_");
+	return (LOCALES.find((l) => l.toLowerCase() === raw) ??
+		DEFAULT_LOCALE) as Locale;
+}

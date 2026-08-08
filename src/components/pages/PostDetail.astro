@@ -3,7 +3,7 @@ import path from "node:path";
 import License from "@components/misc/License.astro";
 import Markdown from "@components/misc/Markdown.astro";
 import I18nKey from "@i18n/i18nKey";
-import { i18n } from "@i18n/translation";
+import { useTranslations } from "@i18n/utils";
 import MainGridLayout from "@layouts/MainGridLayout.astro";
 import {
 	getRelatedPosts,
@@ -36,6 +36,9 @@ interface Props {
 	fallback?: boolean;
 }
 const { entry, locale, fallback = false } = Astro.props;
+
+// 文章页的语言由路由 props 直接给出，无需从 URL 推导
+const t = useTranslations(locale);
 const { Content, headings, remarkPluginFrontmatter } = await render(entry);
 
 /*
@@ -83,14 +86,14 @@ const jsonLd = {
                     <div class="transition h-6 w-6 rounded-md bg-black/5 dark:bg-white/10 text-black/50 dark:text-white/50 flex items-center justify-center mr-2">
                         <Icon name="material-symbols:notes-rounded"></Icon>
                     </div>
-                    <div class="text-sm">{remarkPluginFrontmatter.words} {" " + i18n(I18nKey.wordsCount)}</div>
+                    <div class="text-sm">{remarkPluginFrontmatter.words} {" " + t(I18nKey.wordsCount)}</div>
                 </div>
                 <div class="flex flex-row items-center">
                     <div class="transition h-6 w-6 rounded-md bg-black/5 dark:bg-white/10 text-black/50 dark:text-white/50 flex items-center justify-center mr-2">
                         <Icon name="material-symbols:schedule-outline-rounded"></Icon>
                     </div>
                     <div class="text-sm">
-                        {remarkPluginFrontmatter.minutes} {" " + i18n(remarkPluginFrontmatter.minutes === 1 ? I18nKey.minuteCount : I18nKey.minutesCount)}
+                        {remarkPluginFrontmatter.minutes} {" " + t(remarkPluginFrontmatter.minutes === 1 ? I18nKey.minuteCount : I18nKey.minutesCount)}
                     </div>
                 </div>
 
