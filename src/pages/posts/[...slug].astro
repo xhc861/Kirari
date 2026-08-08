@@ -9,6 +9,7 @@ import MainGridLayout from "@layouts/MainGridLayout.astro";
 import { getSortedPosts } from "@utils/content-utils";
 import { getDir, getPostUrlBySlug } from "@utils/url-utils";
 import { Icon } from "astro-icon/components";
+import { render } from "astro:content";
 import { licenseConfig } from "src/config";
 import Comment from "../../components/Comment.astro";
 import KeywordTooltip from "../../components/KeywordTooltip.svelte";
@@ -22,15 +23,13 @@ import { formatDateToYYYYMMDD } from "../../utils/date-utils";
 export async function getStaticPaths() {
 	const blogEntries = await getSortedPosts();
 	return blogEntries.map((entry) => ({
-		params: { slug: entry.slug },
+		params: { slug: entry.id },
 		props: { entry },
 	}));
 }
 
 const { entry } = Astro.props;
-const { Content, headings } = await entry.render();
-
-const { remarkPluginFrontmatter } = await entry.render();
+const { Content, headings, remarkPluginFrontmatter } = await render(entry);
 
 const jsonLd = {
 	"@context": "https://schema.org",
@@ -102,7 +101,7 @@ const jsonLd = {
 
             <!-- 文章顶部操作按钮 -->
             <div class="flex flex-wrap gap-3 items-center mb-6 onload-animation">
-                <PostActions client:load slug={entry.slug} title={entry.data.title} published={entry.data.published} words={remarkPluginFrontmatter.words} minutes={remarkPluginFrontmatter.minutes} />
+                <PostActions client:load slug={entry.id} title={entry.data.title} published={entry.data.published} words={remarkPluginFrontmatter.words} minutes={remarkPluginFrontmatter.minutes} />
                 <ReadingSettings client:load />
             </div>
 
@@ -122,11 +121,11 @@ const jsonLd = {
 
             <KeywordTooltip client:idle />
 
-            {licenseConfig.enable && <License title={entry.data.title} slug={entry.slug} pubDate={entry.data.published} class="mb-6 rounded-xl license-container onload-animation"></License>}
+            {licenseConfig.enable && <License title={entry.data.title} slug={entry.id} pubDate={entry.data.published} class="mb-6 rounded-xl license-container onload-animation"></License>}
 
             <!-- 文章底部操作按钮 -->
             <div class="flex flex-wrap gap-3 items-center mb-6 onload-animation">
-                <PostActions client:load slug={entry.slug} title={entry.data.title} published={entry.data.published} words={remarkPluginFrontmatter.words} minutes={remarkPluginFrontmatter.minutes} />
+                <PostActions client:load slug={entry.id} title={entry.data.title} published={entry.data.published} words={remarkPluginFrontmatter.words} minutes={remarkPluginFrontmatter.minutes} />
                 <ReadingSettings client:load />
             </div>
 
@@ -136,9 +135,9 @@ const jsonLd = {
     <div class="flex flex-col md:flex-row justify-between mb-4 gap-4 overflow-hidden w-full">
         <a href={entry.data.nextSlug ? getPostUrlBySlug(entry.data.nextSlug) : "#"}
            class:list={["w-full font-bold overflow-hidden active:scale-95", {"pointer-events-none": !entry.data.nextSlug}]}>
-            {entry.data.nextSlug && <div class="btn-card rounded-2xl w-full h-[3.75rem] max-w-full px-4 flex items-center !justify-start gap-4" >
+            {entry.data.nextSlug && <div class="btn-card rounded-2xl w-full h-[3.75rem] max-w-full px-4 flex items-center justify-start! gap-4" >
                 <Icon name="material-symbols:chevron-left-rounded" class="text-[2rem] text-[var(--primary)]" />
-                <div class="overflow-hidden transition overflow-ellipsis whitespace-nowrap max-w-[calc(100%_-_3rem)] text-black/75 dark:text-white/75">
+                <div class="overflow-hidden transition text-ellipsis whitespace-nowrap max-w-[calc(100%_-_3rem)] text-black/75 dark:text-white/75">
                     {entry.data.nextTitle}
                 </div>
             </div>}
@@ -146,8 +145,8 @@ const jsonLd = {
 
         <a href={entry.data.prevSlug ? getPostUrlBySlug(entry.data.prevSlug) : "#"}
            class:list={["w-full font-bold overflow-hidden active:scale-95", {"pointer-events-none": !entry.data.prevSlug}]}>
-            {entry.data.prevSlug && <div class="btn-card rounded-2xl w-full h-[3.75rem] max-w-full px-4 flex items-center !justify-end gap-4">
-                <div class="overflow-hidden transition overflow-ellipsis whitespace-nowrap max-w-[calc(100%_-_3rem)] text-black/75 dark:text-white/75">
+            {entry.data.prevSlug && <div class="btn-card rounded-2xl w-full h-[3.75rem] max-w-full px-4 flex items-center justify-end! gap-4">
+                <div class="overflow-hidden transition text-ellipsis whitespace-nowrap max-w-[calc(100%_-_3rem)] text-black/75 dark:text-white/75">
                     {entry.data.prevTitle}
                 </div>
                 <Icon name="material-symbols:chevron-right-rounded" class="text-[2rem] text-[var(--primary)]" />

@@ -1,6 +1,16 @@
-import { defineCollection, z } from "astro:content";
+/*
+ * Astro 6+ 移除了旧版内容集合，必须使用 Content Layer API：
+ * - 配置文件从 src/content/config.ts 移到 src/content.config.ts
+ * - 每个集合都要显式声明 loader
+ * - 不再有 type: 'content' / 'data'
+ * - 消费端 entry.slug → entry.id，entry.render() → render(entry)
+ */
+import { glob } from "astro/loaders";
+import { defineCollection } from "astro:content";
+import { z } from "astro/zod";
 
 const postsCollection = defineCollection({
+	loader: glob({ base: "./src/content/posts", pattern: "**/*.{md,mdx}" }),
 	schema: z.object({
 		title: z.string(),
 		published: z.date(),
@@ -19,14 +29,13 @@ const postsCollection = defineCollection({
 		nextSlug: z.string().default(""),
 	}),
 });
+
 const specCollection = defineCollection({
+	loader: glob({ base: "./src/content/spec", pattern: "**/*.{md,mdx}" }),
 	schema: z.object({}),
 });
+
 export const collections = {
-	posts: postsCollection satisfies ReturnType<
-		typeof defineCollection
-	> as ReturnType<typeof defineCollection>,
-	spec: specCollection satisfies ReturnType<
-		typeof defineCollection
-	> as ReturnType<typeof defineCollection>,
+	posts: postsCollection,
+	spec: specCollection,
 };
