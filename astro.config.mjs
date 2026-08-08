@@ -1,7 +1,8 @@
+import { unified } from "@astrojs/markdown-remark";
 import sitemap from "@astrojs/sitemap";
 import svelte from "@astrojs/svelte";
 import vercel from "@astrojs/vercel";
-import tailwind from "@astrojs/tailwind";
+import tailwindcss from "@tailwindcss/vite";
 import { pluginCollapsibleSections } from "@expressive-code/plugin-collapsible-sections";
 import { pluginLineNumbers } from "@expressive-code/plugin-line-numbers";
 import swup from "@swup/astro";
@@ -32,10 +33,9 @@ export default defineConfig({
 	trailingSlash: "always",
 	output: "static", // 静态模式，API 路由会自动作为服务端函数
 	adapter: vercel(),
+	// Astro 7 将默认值改为 'jsx'（按 JSX 规则剥离空白），保持旧行为避免排版变化
+	compressHTML: true,
 	integrations: [
-		tailwind({
-			nesting: true,
-		}),
 		swup({
 			theme: false,
 			animationClass: "transition-swup-", // see https://swup.js.org/options/#animationselector
@@ -52,7 +52,6 @@ export default defineConfig({
 		}),
 		icon({
 			include: {
-				"preprocess: vitePreprocess(),": ["*"],
 				"fa6-brands": ["*"],
 				"fa6-regular": ["*"],
 				"fa6-solid": ["*"],
@@ -106,6 +105,8 @@ export default defineConfig({
 		sitemap(),
 	],
 	markdown: {
+		// Astro 7 默认改用 Sätteri 处理器；本项目依赖 remark/rehype 生态，显式切回 unified
+		processor: unified(),
 		remarkPlugins: [
 			remarkMath,
 			remarkReadingTime,
@@ -157,6 +158,7 @@ export default defineConfig({
 		],
 	},
 	vite: {
+		plugins: [tailwindcss()],
 		build: {
 			rollupOptions: {
 				onwarn(warning, warn) {
