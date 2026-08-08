@@ -165,3 +165,63 @@
     .custom-md .vk-collapse-title::before,
     .custom-md .vk-img-restore { transition: none; }
 }
+
+/* ---------- 表格增强 ---------- */
+.custom-md {
+    .vk-table {
+        width: 100%;
+    }
+
+    .vk-col-bold   { font-weight: 700; }
+    .vk-col-italic { font-style: italic; }
+    .vk-col-mark   { background: color-mix(in oklab, var(--primary) 10%, transparent); }
+
+    /* 数值列：等宽对齐，小数缩小，正负号着色 */
+    .vk-num {
+        font-family: "JetBrains Mono Variable", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-variant-numeric: tabular-nums;
+        text-align: right;
+        white-space: nowrap;
+    }
+    .vk-num-dec {
+        font-size: 0.82em;
+        opacity: 0.72;
+    }
+    .vk-num-sign { margin-right: 0.05em; }
+    .vk-num-pos .vk-num-sign { color: oklch(0.55 0.15 145); }
+    .vk-num-neg .vk-num-sign,
+    .vk-num-neg { color: oklch(0.55 0.18 25); }
+
+    /* 百分比：数字 + 淡化的 % + 底部进度条 */
+    .vk-pct { position: relative; }
+    .vk-pct-sign {
+        font-size: 0.82em;
+        opacity: 0.55;
+        margin-left: 0.1em;
+    }
+    .vk-pct-bar {
+        position: absolute;
+        left: 0.3rem;
+        right: 0.3rem;
+        bottom: 0.18rem;
+        height: 2px;
+        border-radius: 2px;
+        background: color-mix(in oklab, var(--primary) 18%, transparent);
+        overflow: hidden;
+    }
+    .vk-pct-bar::after {
+        content: "";
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: var(--vk-pct, 0%);
+        background: var(--primary);
+        border-radius: inherit;
+    }
+
+    /* ---------- 标题自动编号 ---------- */
+    .vk-heading-num {
+        color: var(--primary);
+        margin-right: 0.5em;
+        font-variant-numeric: tabular-nums;
+    }
+}
