@@ -261,35 +261,64 @@ onDestroy(() => {
 ></audio>
 
 <div class="music-player" class:expanded={isExpanded}>
-  <!-- 迷你播放器 -->
-  <!-- svelte-ignore a11y-click-events-have-key-events -->
-  <!-- svelte-ignore a11y-no-static-element-interactions -->
-  <div class="mini-player" on:click={() => isExpanded = !isExpanded} role="button" tabindex="0">
-    <div class="mini-cover">
-      <div class="default-cover" class:spinning={isPlaying}>
-        <svg viewBox="0 0 24 24" fill="currentColor">
-          <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
-        </svg>
+  <!--
+    收起态：一张会转的唱片，进度画成绕着它的圆环。
+    原来是个常驻的大胶囊，歌名和作者一直摊开占地方，还要展开才看得到进度。
+    现在默认只占一个圆，鼠标移上去才滑出歌名。
+  -->
+  <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
+  <div class="mini-player" class:playing={isPlaying}>
+    <button
+      class="disc-btn"
+      on:click|stopPropagation={togglePlay}
+      type="button"
+      aria-label={isPlaying ? "暂停" : "播放"}
+    >
+      <!-- 进度环：不用展开就能看到播到哪了 -->
+      <svg class="ring" viewBox="0 0 44 44" aria-hidden="true">
+        <circle class="ring-track" cx="22" cy="22" r="20" />
+        <circle
+          class="ring-fill"
+          cx="22" cy="22" r="20"
+          style={`stroke-dasharray:${2 * Math.PI * 20};stroke-dashoffset:${2 * Math.PI * 20 * (1 - progress / 100)}`}
+        />
+      </svg>
+
+      <!-- 唱片本体，播放时才转；中心留孔，像真唱片 -->
+      <span class="disc" class:spinning={isPlaying} aria-hidden="true">
+        <span class="disc-hole"></span>
+      </span>
+
+      <!-- 播放/暂停图标叠在唱片上 -->
+      <span class="disc-icon" aria-hidden="true">
+        {#if isPlaying}
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <rect x="7" y="5" width="3.5" height="14" rx="1" />
+            <rect x="13.5" y="5" width="3.5" height="14" rx="1" />
+          </svg>
+        {:else}
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
+        {/if}
+      </span>
+    </button>
+
+    <!-- 歌名：默认收起，hover 或播放中才滑出 -->
+    <div
+      class="mini-info"
+      on:click={() => (isExpanded = true)}
+      role="button"
+      tabindex="0"
+      title="打开播放器"
+    >
+      <div class="mini-title">{currentSong?.title || "未选择歌曲"}</div>
+      <div class="mini-sub">
+        {#if errorMsg}
+          <span class="mini-error">{errorMsg}</span>
+        {:else}
+          {currentSong?.artist || "点这里打开播放器"}
+        {/if}
       </div>
     </div>
-    
-    <div class="mini-info">
-      <div class="mini-title">{currentSong?.title || '未选择歌曲'}</div>
-      <div class="mini-artist">{currentSong?.artist || ''}</div>
-    </div>
-    
-    <button class="mini-play-btn" on:click|stopPropagation={togglePlay} type="button">
-      {#if isPlaying}
-        <svg viewBox="0 0 24 24" fill="currentColor">
-          <rect x="6" y="4" width="4" height="16" rx="1"/>
-          <rect x="14" y="4" width="4" height="16" rx="1"/>
-        </svg>
-      {:else}
-        <svg viewBox="0 0 24 24" fill="currentColor">
-          <path d="M8 5v14l11-7z"/>
-        </svg>
-      {/if}
-    </button>
   </div>
 
   <!-- 展开的播放器 -->
@@ -449,118 +478,144 @@ onDestroy(() => {
     z-index: 9999;
   }
   
-  /* 迷你播放器 */
+  /* ---------- 收起态：唱片 + 进度环 ---------- */
   .mini-player {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    /* 靠右收起，hover 时向左展开歌名 */
+    flex-direction: row-reverse;
+    gap: 0;
+    padding: 0.3rem;
+    border-radius: 999px;
     background: var(--card-bg);
     border: 1px solid var(--line-divider);
-    border-radius: 1.5rem;
-    padding: 0.5rem 1rem 0.5rem 0.5rem;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
-    cursor: pointer;
-    transition: all 0.3s;
-    backdrop-filter: blur(10px);
+    /* 用主题色的柔光替代原来的黑色重阴影，跟站点更贴 */
+    box-shadow:
+      0 4px 16px rgba(0, 0, 0, 0.08),
+      0 0 0 4px color-mix(in oklab, var(--primary) 8%, transparent);
+    transition: box-shadow 0.3s ease, gap 0.3s ease, padding 0.3s ease;
   }
-  
   .mini-player:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
-  }
-  
-  .mini-cover {
-    width: 3rem;
-    height: 3rem;
-    border-radius: 50%;
-    overflow: hidden;
-    flex-shrink: 0;
-    background: linear-gradient(135deg, var(--primary) 0%, oklch(0.65 0.14 calc(var(--hue) + 20)) 100%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    gap: 0.15rem;
+    padding-left: 0.9rem;
+    box-shadow:
+      0 8px 26px rgba(0, 0, 0, 0.12),
+      0 0 0 4px color-mix(in oklab, var(--primary) 16%, transparent);
   }
 
-  .default-cover {
+  .disc-btn {
+    position: relative;
+    width: 2.75rem;
+    height: 2.75rem;
+    flex-shrink: 0;
+    border: none;
+    background: none;
+    padding: 0;
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+  }
+
+  /* 进度环 */
+  .ring {
+    position: absolute;
+    inset: 0;
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    transform: rotate(-90deg);
   }
-  
-  .default-cover {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.5rem;
-    color: white;
+  .ring-track,
+  .ring-fill {
+    fill: none;
+    stroke-width: 2;
   }
-  
-  .default-cover svg {
-    width: 1.5rem;
-    height: 1.5rem;
-    color: white;
-  }
-  
-  .spinning {
-    animation: spin 10s linear infinite;
-  }
-  
-  @keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-  }
-  
-  .mini-info {
-    flex: 1;
-    min-width: 0;
-  }
-  
-  .mini-title {
-    font-size: 0.875rem;
-    font-weight: 500;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  
-  :global(.dark) .mini-title {
-    color: rgba(255, 255, 255, 0.9)
+  .ring-track { stroke: var(--line-divider); }
+  .ring-fill {
+    stroke: var(--primary);
+    stroke-linecap: round;
+    transition: stroke-dashoffset 0.25s linear;
   }
 
-  .mini-artist {
-    font-size: 0.75rem;
-    opacity: 0.6;
+  /* 唱片本体：径向纹路 + 中心孔，比原来的纯色渐变圆有质感 */
+  .disc {
+    width: 2.1rem;
+    height: 2.1rem;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background:
+      repeating-radial-gradient(
+        circle at center,
+        color-mix(in oklab, var(--primary) 82%, black) 0 2px,
+        color-mix(in oklab, var(--primary) 70%, black) 2px 4px
+      );
+  }
+  .disc-hole {
+    width: 0.42rem;
+    height: 0.42rem;
+    border-radius: 50%;
+    background: var(--card-bg);
+  }
+  .spinning { animation: spin 6s linear infinite; }
+  @keyframes spin {
+    from { transform: rotate(0); }
+    to { transform: rotate(360deg); }
+  }
+
+  /* 图标叠在唱片上，默认淡出，hover 才明显 —— 不挡住唱片纹理 */
+  .disc-icon {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    color: #fff;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    pointer-events: none;
+  }
+  .disc-btn:hover .disc-icon,
+  .disc-btn:focus-visible .disc-icon { opacity: 1; }
+  .disc-icon svg { width: 1.1rem; height: 1.1rem; }
+
+  /* ---------- 歌名：默认收起 ---------- */
+  .mini-info {
+    max-width: 0;
+    overflow: hidden;
     white-space: nowrap;
+    cursor: pointer;
+    transition: max-width 0.35s cubic-bezier(0.22, 0.8, 0.3, 1), opacity 0.25s ease;
+    opacity: 0;
+    text-align: right;
+  }
+  .mini-player:hover .mini-info,
+  .mini-player:focus-within .mini-info {
+    max-width: 11rem;
+    opacity: 1;
+  }
+
+  .mini-title {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: rgba(0, 0, 0, 0.8);
     overflow: hidden;
     text-overflow: ellipsis;
   }
-  
-  :global(.dark) .mini-artist {
-    color: rgba(255, 255, 255, 0.7);
+  :global(.dark) .mini-title { color: rgba(255, 255, 255, 0.85); }
+
+  .mini-sub {
+    font-size: 0.7rem;
+    color: rgba(0, 0, 0, 0.45);
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
-  
-  .mini-play-btn {
-    width: 2.5rem;
-    height: 2.5rem;
-    border-radius: 50%;
-    background: var(--primary);
-    border: none;
-    color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all 0.2s;
-    flex-shrink: 0;
-  }
-  
-  .mini-play-btn:hover {
-    transform: scale(1.1);
-  }
-  
-  .mini-play-btn svg {
-    width: 1.25rem;
-    height: 1.25rem;
+  :global(.dark) .mini-sub { color: rgba(255, 255, 255, 0.45); }
+
+  .mini-error { color: oklch(0.6 0.18 25); }
+  :global(.dark) .mini-error { color: oklch(0.75 0.16 25); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .spinning { animation: none; }
+    .mini-player, .mini-info, .disc-icon, .ring-fill { transition: none; }
   }
 
   /* 展开的播放器 */
