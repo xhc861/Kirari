@@ -3,8 +3,14 @@
  * Banner 底部的波浪。
  *
  * 作用是把大图和下方内容衔接起来 —— 原本是一条硬边，图片到内容之间断得很突然。
- * 三层不同透明度、不同速度的波浪缓慢平移，形成轻微的错位感；速度很慢
- * （最快一层 18 秒一轮），是背景氛围而不是动画表演。
+ *
+ * 三层各有自己的曲线：波长从后到前依次变短（720 / 480 / 360），位置依次下移。
+ * 三条不同周期的曲线互相穿插，才会有「水面」的层次；先前三层共用一条曲线，
+ * 叠在一起只是一条粗带子在平移。
+ *
+ * 动的方式也是两重：外层上下摇（各层振幅、周期、相位都不同），内层左右漂。
+ * 两个周期不成整数比，所以合成出来的起伏不会很快看出循环。速度依旧压得很慢
+ * （最快一层 15 秒漂完一轮），是背景氛围而不是动画表演。
  *
  * 颜色取自页面背景色，所以换主题、切深色模式都不用改这里。
  */
@@ -13,23 +19,46 @@
 <div class="banner-wave" aria-hidden="true">
     <svg viewBox="0 0 1440 120" preserveAspectRatio="none">
         <defs>
+            <!--
+              三条曲线的首尾高度都相同（60 / 70 / 86），首尾拼接才不会有台阶。
+              底边压到 140，超出 viewBox 的部分会被裁掉 —— 留出的余量是给上下
+              摇摆用的，不然摇上去时波浪底下会漏出 banner 图。
+            -->
             <path
-                id="wave-shape"
-                d="M0,64 C180,100 360,20 540,52 C720,84 900,28 1080,56 C1260,84 1380,48 1440,40 L1440,120 L0,120 Z"
+                id="wave-shape-back"
+                d="M0,60 C240,20 480,100 720,60 C960,20 1200,100 1440,60 L1440,140 L0,140 Z"
+            />
+            <path
+                id="wave-shape-mid"
+                d="M0,70 C120,42 360,98 480,70 C600,42 840,98 960,70 C1080,42 1320,98 1440,70 L1440,140 L0,140 Z"
+            />
+            <path
+                id="wave-shape-front"
+                d="M0,86 C90,72 270,100 360,86 C450,72 630,100 720,86 C810,72 990,100 1080,86 C1170,72 1350,100 1440,86 L1440,140 L0,140 Z"
             />
         </defs>
-        <!-- 三层叠加：靠后的更淡更慢，靠前的更实 -->
+        <!--
+          每层套两个 g：外层上下摇，内层左右漂。
+          一个元素只能有一份 transform，所以两种动作得拆开放。
+          内层铺两块首尾相接的波形，漂满一整块宽度后回到原点，看不出接缝。
+        -->
         <g class="wave-layer wave-back">
-            <use href="#wave-shape" x="0" />
-            <use href="#wave-shape" x="1440" />
+            <g class="wave-slide">
+                <use href="#wave-shape-back" x="0" />
+                <use href="#wave-shape-back" x="1440" />
+            </g>
         </g>
         <g class="wave-layer wave-mid">
-            <use href="#wave-shape" x="0" />
-            <use href="#wave-shape" x="1440" />
+            <g class="wave-slide">
+                <use href="#wave-shape-mid" x="0" />
+                <use href="#wave-shape-mid" x="1440" />
+            </g>
         </g>
         <g class="wave-layer wave-front">
-            <use href="#wave-shape" x="0" />
-            <use href="#wave-shape" x="1440" />
+            <g class="wave-slide">
+                <use href="#wave-shape-front" x="0" />
+                <use href="#wave-shape-front" x="1440" />
+            </g>
         </g>
     </svg>
 </div>
@@ -56,23 +85,50 @@
         fill: var(--page-bg);
     }
 
-    /* 每层各自的透明度与速度，错开后才有层次，不然像一条粗线在平移 */
+    /* 靠后的更淡、摇得更大更慢；靠前的更实、只轻轻起伏 */
     .wave-back {
         opacity: 0.35;
-        animation: wave-drift 26s linear infinite;
+        animation: wave-bob-back 11s ease-in-out infinite alternate;
     }
     .wave-mid {
         opacity: 0.6;
-        animation: wave-drift 18s linear infinite reverse;
+        animation: wave-bob-mid 8s ease-in-out infinite alternate;
+        animation-delay: -3s;
     }
     .wave-front {
         opacity: 1;
-        animation: wave-drift 22s linear infinite;
+        animation: wave-bob-front 6s ease-in-out infinite alternate;
+        animation-delay: -1.5s;
+    }
+
+    /* 水平漂移。中间一层反向，两侧错开才有相对运动 */
+    .wave-back .wave-slide {
+        animation: wave-drift 26s linear infinite;
+    }
+    .wave-mid .wave-slide {
+        animation: wave-drift 20s linear infinite reverse;
+    }
+    .wave-front .wave-slide {
+        animation: wave-drift 15s linear infinite;
     }
 
     @keyframes wave-drift {
         from { transform: translateX(0); }
         to { transform: translateX(-1440px); }
+    }
+
+    /* 振幅用 SVG 用户单位，随 viewBox 一起缩放 */
+    @keyframes wave-bob-back {
+        from { transform: translateY(-7px); }
+        to { transform: translateY(7px); }
+    }
+    @keyframes wave-bob-mid {
+        from { transform: translateY(5px); }
+        to { transform: translateY(-5px); }
+    }
+    @keyframes wave-bob-front {
+        from { transform: translateY(-3px); }
+        to { transform: translateY(3px); }
     }
 
     /* 窄屏上波浪压扁一点，别占掉太多首屏 */
@@ -81,6 +137,7 @@
     }
 
     @media (prefers-reduced-motion: reduce) {
-        .wave-back, .wave-mid, .wave-front { animation: none; }
+        .wave-back, .wave-mid, .wave-front,
+        .wave-slide { animation: none; }
     }
 </style>
