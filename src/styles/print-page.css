@@ -15,6 +15,17 @@
 	--rule: #d8dce4;
 	--accent: #2b5fd9;
 	--code-bg: #f4f6fa;
+
+	/*
+	 * 代码块必须给深色底。
+	 *
+	 * 语法主题是 github-dark（浅色文字），而 --codeblock-bg 定义在
+	 * variables.styl 里，打印页并不引入它 —— 变量未定义时背景塌成透明，
+	 * 浅色文字落在白纸上几乎看不见。这里补一个确定的深色底，
+	 * 并让浏览器打印时保留它（下方已设 print-color-adjust: exact）。
+	 */
+	--codeblock-bg: #10131a;
+	--codeblock-topbar-bg: #171b24;
 }
 
 .print-doc *, .print-doc *::before, .print-doc *::after { box-sizing: border-box; }
@@ -153,8 +164,9 @@
 	border-radius: 3px;
 }
 .doc-body pre {
-	background: var(--code-bg);
-	border: 1px solid var(--rule);
+	background: var(--codeblock-bg);
+	color: #e6edf3;
+	border: 1px solid var(--codeblock-topbar-bg);
 	border-radius: 4px;
 	padding: 0.8em 1em;
 	overflow-x: auto;
@@ -168,10 +180,20 @@
 	padding: 0;
 	font-size: 1em;
 }
-/* expressive-code 的外框在纸上是多余的装饰 */
+/* expressive-code 的外框在纸上是多余的装饰，但底色必须留住 */
 .doc-body .expressive-code .frame {
 	box-shadow: none;
 	border: none;
+}
+.doc-body .expressive-code pre,
+.doc-body .expressive-code .frame pre {
+	background: var(--codeblock-bg) !important;
+	border: none;
+}
+/* 行号与文件名栏 */
+.doc-body .expressive-code .frame .header {
+	background: var(--codeblock-topbar-bg) !important;
+	color: #c9d1d9 !important;
 }
 
 .doc-body hr {
