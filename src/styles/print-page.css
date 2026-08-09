@@ -1,12 +1,15 @@
 /*
  * 打印页样式。
  *
- * 独立于站点样式：这里不引 Tailwind，也不复用 markdown.css —— 那份是为
- * 屏幕阅读写的，带着主题色变量、悬停态、暗色模式等一整套依赖。
- * 打印只需要一份朴素、黑白、可读的排版。
+ * 【重要】本文件里的规则一律挂在 .print-doc 作用域下，绝不选中裸 body。
+ *
+ * 起初这里写的是 `body { max-width: 46em }`。Astro 会把小体积样式内联进
+ * 页面的 <style>，结果这条规则被打进了首页，把整站压成 736px 宽 ——
+ * 导航栏被挤到逐字换行、banner 也不再满宽。
+ * 打印页专用的样式必须自带作用域，才不会因为打包策略变化而污染全站。
  */
 
-:root {
+.print-doc {
 	--ink: #16181d;
 	--ink-soft: #4a5160;
 	--rule: #d8dce4;
@@ -14,13 +17,13 @@
 	--code-bg: #f4f6fa;
 }
 
-* { box-sizing: border-box; }
+.print-doc *, .print-doc *::before, .print-doc *::after { box-sizing: border-box; }
 
-html {
+.print-doc {
 	font-size: 12pt;
 }
 
-body {
+.print-doc {
 	margin: 0;
 	padding: 2.2rem 2rem 3rem;
 	max-width: 46em;
@@ -233,7 +236,7 @@ body {
 @media print {
 	.print-bar { display: none !important; }
 
-	body {
+	.print-doc {
 		padding: 0;
 		max-width: none;
 	}
