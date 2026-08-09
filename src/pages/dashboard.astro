@@ -1,10 +1,17 @@
 ---
+/**
+ * 展板。
+ *
+ * 写作统计的数字在构建期算好后作为 props 传给面板 —— 面板虽然是
+ * client:only，props 仍会被序列化过去，不需要为此加一个接口。
+ */
 import DashboardPanel from "@components/dashboard/DashboardPanel.svelte";
 import DashboardLayout from "@layouts/DashboardLayout.astro";
+import { getWritingStats } from "@utils/stats-utils";
 
-
+const stats = await getWritingStats();
 ---
 
 <DashboardLayout title="展板">
-    <DashboardPanel client:only="svelte" />
+    <DashboardPanel client:only="svelte" stats={stats} />
 </DashboardLayout>

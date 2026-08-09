@@ -26,9 +26,19 @@ export let months: [string, number][] = [];
 export let categories: { name: string; value: number }[] = [];
 export let tags: { name: string; value: number }[] = [];
 
+let rootEl: HTMLDivElement;
 let calendarEl: HTMLDivElement;
 let monthsEl: HTMLDivElement;
 let categoryEl: HTMLDivElement;
+
+/**
+ * 是否已经画过。
+ *
+ * 统计并进展板后，这个面板可能一开始就藏在未激活的分区里 —— 那时容器宽度是 0，
+ * echarts 会按 0 宽初始化，之后即使容器变宽也只是一片空白。所以要等到真的有
+ * 尺寸了再建图，并在尺寸变化时 resize。
+ */
+let built = false;
 
 let charts: { dispose: () => void; resize: () => void }[] = [];
 let cleanup: (() => void) | null = null;
@@ -182,15 +192,39 @@ onMount(async () => {
 		}
 	}
 
-	build();
+	/** 只在容器真的有宽度时才建图，否则 echarts 会按 0 宽画出一片空白 */
+	function buildIfSized() {
+		if (!rootEl || rootEl.clientWidth === 0) return;
+		built = true;
+		build();
+	}
+
+	buildIfSized();
 
 	const onResize = () => {
 		for (const c of charts) c.resize();
 	};
 	window.addEventListener("resize", onResize);
 
+	/*
+	 * 容器自身的尺寸变化：分区被切到、折叠展开时都会从 0 宽变成有宽度。
+	 * 第一次拿到宽度时补建，之后只需重排。
+	 */
+	const sizeObserver = new ResizeObserver(() => {
+		if (!rootEl || rootEl.clientWidth === 0) return;
+		if (!built) {
+			buildIfSized();
+			return;
+		}
+		for (const c of charts) c.resize();
+	});
+	if (rootEl) sizeObserver.observe(rootEl);
+
 	// 主题切换后重建，否则文字颜色留在上一套主题里
-	const observer = new MutationObserver(build);
+	const observer = new MutationObserver(() => {
+		if (!built) return;
+		build();
+	});
 	observer.observe(document.documentElement, {
 		attributes: true,
 		attributeFilter: ["class"],
@@ -198,6 +232,7 @@ onMount(async () => {
 
 	cleanup = () => {
 		window.removeEventListener("resize", onResize);
+		sizeObserver.disconnect();
 		observer.disconnect();
 		for (const c of charts) c.dispose();
 	};
@@ -206,7 +241,7 @@ onMount(async () => {
 onDestroy(() => cleanup?.());
 </script>
 
-<div class="stats-grid">
+<div class="stats-grid" bind:this={rootEl}>
   <div class="stat-row card-base">
     <div class="stat"><span class="n">{fmt(summary.posts)}</span><span class="k">篇文章</span></div>
     <div class="stat"><span class="n">{fmt(summary.chars)}</span><span class="k">字</span></div>

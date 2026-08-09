@@ -7,7 +7,12 @@ import CountdownModule from "./CountdownModule.svelte";
 import ExtraFeaturesModule from "./ExtraFeaturesModule.svelte";
 import MicroNewsModule from "./MicroNewsModule.svelte";
 import ScoreboardModule from "./ScoreboardModule.svelte";
+import StatsModule from "./StatsModule.svelte";
 import TodoModule from "./TodoModule.svelte";
+import type { WritingStats } from "@utils/stats-utils";
+
+/** 写作统计，构建期算好由 dashboard.astro 传入 */
+export let stats: WritingStats | null = null;
 
 interface Countdown {
 	id: string;
@@ -64,6 +69,11 @@ onMount(() => {
   <!-- 微新闻 - 单独一行 -->
   <div class="micro-news-section dash-section" style="--enter-order: 2">
     <MicroNewsModule />
+  </div>
+
+  <!-- 写作统计（原 /stats/ 独立页） -->
+  <div id="stats" class="dash-section" style="--enter-order: 3">
+    <StatsModule {stats} />
   </div>
 
   <!-- 待办事项（较窄）+ 中考成绩（弹性占满） -->

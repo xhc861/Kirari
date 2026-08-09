@@ -23,10 +23,6 @@ export const LinkPresets: { [key in LinkPreset]: NavBarLink } = {
 		name: "展板",
 		url: "/dashboard/",
 	},
-	[LinkPreset.Stats]: {
-		name: "统计",
-		url: "/stats/",
-	},
 	[LinkPreset.friend]: {
 		name: "友链&外站",
 		url: "/friends/",
