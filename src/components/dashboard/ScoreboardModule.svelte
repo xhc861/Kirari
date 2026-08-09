@@ -1,5 +1,18 @@
 <script lang="ts">
-import { onMount } from "svelte";
+/**
+ * 成绩单。
+ *
+ * 之前不管有没有数据，都硬渲染三张表 —— 分数没公布时就是二十几个「—」铺满
+ * 通栏，占屏幅最大、信息量为零。现在按公布进度分三种样子：
+ *
+ *   一分未出 → 一句话，不摆空表
+ *   出了一部分 → 表格照常，标题旁标「已出 3/11」
+ *   总分出了 → 总分抽出来放大，那才是所有人第一眼要找的数
+ *
+ * 数据来自 public/scoreboard.json。JSON 里用中文键，便于非技术用户直接编辑。
+ */
+import { createEventDispatcher, onMount } from "svelte";
+
 /** 计分科目成绩（全部未公布时为 null） */
 interface ScoredSubjects {
 	total: number | null;
@@ -27,14 +40,8 @@ interface RankInfo {
 	schoolQuota: number | null;
 }
 
-/*
- * 数据来自 public/scoreboard.json。
- *
- * 这里原本把科目、分数、等级全写死在组件里 —— 展板其他模块都是读
- * public/*.json，只有它要改一次成绩就得动代码。外置之后模式统一了，
- * 这个模块对模板使用者也才有意义。
- */
-let title = "成绩单";
+const dispatch = createEventDispatcher<{ summary: string; title: string }>();
+
 let scores: ScoredSubjects = {
 	total: null,
 	chinese: null,
@@ -57,7 +64,8 @@ let ranks: RankInfo = {
 	schoolQuota: null,
 };
 
-/** JSON 里用中文键，便于非技术用户直接编辑 */
+let loaded = false;
+
 const SCORE_KEY_MAP: Record<string, keyof ScoredSubjects> = {
 	总分: "total",
 	语文: "chinese",
@@ -84,8 +92,12 @@ async function loadScoreboard() {
 		if (!res.ok) return;
 		const data = await res.json();
 
+		/*
+		 * JSON 里的自定义标题交回给外壳显示。上一版把模块自带的标题一律隐藏，
+		 * 结果在 scoreboard.json 里改 title 根本不生效 —— 这里补回来。
+		 */
 		if (typeof data?.title === "string" && data.title.trim()) {
-			title = data.title.trim();
+			dispatch("title", data.title.trim());
 		}
 
 		if (data?.scored && typeof data.scored === "object") {
@@ -117,7 +129,9 @@ async function loadScoreboard() {
 			ranks = next;
 		}
 	} catch {
-		// 文件缺失或格式错误时保持全空，表格照常渲染为「—」
+		// 文件缺失或格式错误时保持全空，走「尚未公布」那一支
+	} finally {
+		loaded = true;
 	}
 }
 
@@ -136,12 +150,41 @@ function sumNullable(...vals: (number | null)[]): number | null {
 $: englishTotal = sumNullable(scores.englishWritten, scores.englishListening);
 $: scienceTotal = sumNullable(scores.physics, scores.chemistry);
 $: artsTotal = sumNullable(scores.history, scores.politics);
+
+/** 公布进度：决定这个模块长什么样 */
+$: scoredValues = Object.values(scores);
+$: publishedCount = scoredValues.filter((v) => v !== null).length;
+$: hasNonScored = nonScored.some((i) => i.result !== null);
+$: hasRanks = Object.values(ranks).some((v) => v !== null);
+$: anything = publishedCount > 0 || hasNonScored || hasRanks;
+
+$: if (loaded) {
+	dispatch(
+		"summary",
+		anything ? `已出 ${publishedCount}/${scoredValues.length}` : "未公布",
+	);
+}
 </script>
 
-<div class="scoreboard-module card-base">
-  <h3 class="module-title">{title}</h3>
+{#if !loaded}
+  <p class="note">读取中…</p>
+{:else if !anything}
+  <!-- 一分未出：不摆空表，说清楚现在是什么状态、分数会从哪儿来 -->
+  <div class="pending">
+    <p class="pending-title">成绩还没公布。</p>
+    <p class="note">
+      出分后填进 <code>public/scoreboard.json</code>，这里会自动排好 ——
+      总分、单科、文理综合小计、排位都在里面。
+    </p>
+  </div>
+{:else}
+  {#if scores.total !== null}
+    <div class="total">
+      <span class="total-n">{scores.total}</span>
+      <span class="total-k">总分</span>
+    </div>
+  {/if}
 
-  <!-- 计分科目：弹性表格，无横向滚动 -->
   <div class="table-wrap">
     <table class="score-table scored-table">
       <thead>
@@ -187,82 +230,94 @@ $: artsTotal = sumNullable(scores.history, scores.politics);
     </table>
   </div>
 
-  <!-- 非计分科目 -->
-  <h4 class="section-label">非计分科目</h4>
-  <div class="table-wrap">
-    <table class="score-table plain-table">
-      <thead>
-        <tr>
-          {#each nonScored as item (item.name)}
-            <th>{item.name}</th>
-          {/each}
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          {#each nonScored as item (item.name)}
-            <td>{display(item.result)}</td>
-          {/each}
-        </tr>
-      </tbody>
-    </table>
-  </div>
+  <!-- 非计分科目：一个结果都没有时整块跳过，不摆一排「—」 -->
+  {#if hasNonScored}
+    <h3 class="sub-label">非计分科目</h3>
+    <div class="table-wrap">
+      <table class="score-table plain-table">
+        <thead>
+          <tr>
+            {#each nonScored as item (item.name)}
+              <th>{item.name}</th>
+            {/each}
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            {#each nonScored as item (item.name)}
+              <td>{display(item.result)}</td>
+            {/each}
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  {/if}
 
-  <!-- 排位（不含综合素质评价） -->
-  <h4 class="section-label">排位</h4>
-  <div class="table-wrap">
-    <table class="score-table plain-table rank-table">
-      <thead>
-        <tr>
-          <th>市排名</th>
-          <th>区排名</th>
-          <th>校内指标</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td>{display(ranks.city)}</td>
-          <td>{display(ranks.district)}</td>
-          <td>{display(ranks.schoolQuota)}</td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-</div>
+  {#if hasRanks}
+    <h3 class="sub-label">排位</h3>
+    <div class="table-wrap">
+      <table class="score-table plain-table">
+        <thead>
+          <tr><th>市排名</th><th>区排名</th><th>校内指标</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>{display(ranks.city)}</td>
+            <td>{display(ranks.district)}</td>
+            <td>{display(ranks.schoolQuota)}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  {/if}
+{/if}
 
 <style>
-  .scoreboard-module {
-    padding: clamp(0.75rem, 1.5vw, 1.25rem) clamp(0.65rem, 1.2vw, 1.25rem);
-    border-radius: var(--radius-large);
-    height: 100%;
-    width: 100%;
-    min-width: 0;
-    box-sizing: border-box;
-    display: flex;
-    flex-direction: column;
+  .note {
+    margin: 0;
+    font-size: 0.85rem;
+    line-height: 1.7;
+    opacity: 0.5;
+  }
+  .note code {
+    font-size: 0.9em;
+    padding: 0.05rem 0.3rem;
+    border-radius: 0.25rem;
+    background: var(--btn-regular-bg);
   }
 
-  .module-title {
-    font-size: clamp(1.05rem, 1.5vw, 1.25rem);
+  .pending-title {
+    margin: 0 0 0.3rem;
+    font-size: 1rem;
     font-weight: 600;
-    margin-bottom: 0.75rem;
+  }
+
+  /* 总分单独抽出来 —— 表格里它只是第一格，实际是所有人第一眼要找的数 */
+  .total {
+    display: flex;
+    align-items: baseline;
+    gap: 0.4rem;
+    margin-bottom: 0.9rem;
+  }
+  .total-n {
+    font-size: 2.5rem;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -0.03em;
     color: var(--primary);
+    font-variant-numeric: tabular-nums;
+  }
+  .total-k {
+    font-size: 0.8rem;
+    opacity: 0.5;
   }
 
-  :global(.dark) .module-title {
-    color: oklch(0.75 0.14 var(--hue));
-  }
-
-  .section-label {
-    font-size: clamp(0.8rem, 1.2vw, 0.9rem);
-    font-weight: 500;
-    margin: 1rem 0 0.5rem;
-    color: var(--primary);
-    opacity: 0.9;
-  }
-
-  :global(.dark) .section-label {
-    color: oklch(0.75 0.14 var(--hue));
+  .sub-label {
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    margin: 1.1rem 0 0.45rem;
+    opacity: 0.5;
   }
 
   .table-wrap {
@@ -271,7 +326,6 @@ $: artsTotal = sumNullable(scores.history, scores.politics);
     /* 窄屏下 11 列表格挤成一团，让它自己横向滚动而不是压扁 */
     overflow-x: auto;
     overflow-y: hidden;
-    border-radius: 0.5rem;
     -webkit-overflow-scrolling: touch;
   }
 
@@ -287,22 +341,19 @@ $: artsTotal = sumNullable(scores.history, scores.politics);
     max-width: 100%;
     table-layout: fixed;
     border-collapse: collapse;
-    font-size: clamp(0.62rem, 1.05vw, 0.8125rem);
-    background: var(--card-bg);
-    border: 1px solid var(--line-divider);
+    font-size: clamp(0.66rem, 1vw, 0.8125rem);
   }
 
+  /* 卡片没了，表格的框也跟着轻下来：只留细横线，竖线交给留白 */
   .score-table th,
   .score-table td {
-    border: 1px solid var(--line-divider);
-    padding: clamp(0.28rem, 0.7vw, 0.5rem) clamp(0.12rem, 0.4vw, 0.3rem);
+    border-bottom: 1px solid var(--line-divider);
+    padding: clamp(0.3rem, 0.7vw, 0.5rem) clamp(0.15rem, 0.4vw, 0.35rem);
     text-align: center;
     vertical-align: middle;
-    /* 允许表头换行以塞进容器，数值尽量不换行 */
     word-break: break-word;
     overflow-wrap: anywhere;
-    line-height: 1.25;
-    hyphens: auto;
+    line-height: 1.3;
   }
 
   .value-row td,
@@ -314,80 +365,29 @@ $: artsTotal = sumNullable(scores.history, scores.politics);
   }
 
   .score-table thead th {
-    background: color-mix(in oklab, var(--card-bg) 92%, var(--primary) 8%);
     font-weight: 600;
-    color: inherit;
-    opacity: 0.95;
-  }
-
-  :global(.dark) .score-table thead th {
-    background: color-mix(in oklab, var(--card-bg) 85%, white 8%);
-    color: rgba(255, 255, 255, 0.9);
-  }
-
-  .group-row th {
-    font-size: clamp(0.62rem, 1.05vw, 0.8125rem);
+    opacity: 0.55;
   }
 
   .sub-row th {
-    font-size: clamp(0.58rem, 0.95vw, 0.75rem);
+    font-size: 0.92em;
     font-weight: 500;
-    opacity: 0.85;
+    opacity: 0.42;
   }
 
   .value-row td,
-  .subtotal-row td,
   .plain-table tbody td {
-    color: inherit;
-    opacity: 0.85;
+    font-size: 1.05em;
   }
 
   .total-cell {
     font-weight: 700;
     color: var(--primary);
-    opacity: 1 !important;
-  }
-
-  :global(.dark) .total-cell {
-    color: oklch(0.78 0.14 var(--hue));
   }
 
   .subtotal-row td {
-    font-weight: 500;
-    background: color-mix(in oklab, var(--card-bg) 96%, var(--primary) 4%);
+    font-size: 0.95em;
+    opacity: 0.55;
   }
-
-  :global(.dark) .subtotal-row td {
-    background: color-mix(in oklab, var(--card-bg) 90%, white 5%);
-  }
-
-  :global(.dark) .score-table td {
-    color: rgba(255, 255, 255, 0.85);
-  }
-
-  /* 窄屏进一步压缩字号与内边距 */
-  @media (max-width: 640px) {
-    .scoreboard-module {
-      padding: 0.75rem 0.5rem;
-    }
-
-    .score-table {
-      font-size: 0.58rem;
-    }
-
-    .score-table th,
-    .score-table td {
-      padding: 0.22rem 0.08rem;
-    }
-
-    .sub-row th {
-      font-size: 0.54rem;
-    }
-  }
-
-  @media (min-width: 641px) and (max-width: 1023px) {
-    .score-table {
-      font-size: clamp(0.68rem, 1.4vw, 0.8rem);
-    }
-  }
+  .score-table tbody tr:last-child td { border-bottom: none; }
 </style>

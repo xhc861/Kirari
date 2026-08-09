@@ -1,6 +1,5 @@
 <script lang="ts">
-import { onMount, onDestroy } from "svelte";
-import { fade, scale } from "svelte/transition";
+import { onDestroy, onMount } from "svelte";
 
 interface LotteryResponse {
 	code: number;
@@ -272,34 +271,40 @@ function playPronunciation(url: string, type: "uk" | "us") {
 
 <div class="extra-features-container">
   <!-- 抽签 -->
-  <div class="feature-card card-base">
-    <h3 class="feature-title">文昌帝君灵签-抽个签吧</h3>
-    <button 
+  <div class="feature">
+    <div class="feature-text">
+      <h3 class="feature-title">抽个签</h3>
+      <p class="feature-sub">文昌帝君灵签</p>
+    </div>
+    <button
       type="button"
-      class="feature-btn" 
+      class="feature-btn"
       on:click={drawLottery}
       disabled={lotteryLoading}
     >
-      {lotteryLoading ? '抽签中...' : '抽一签'}
+      {lotteryLoading ? '抽签中…' : '抽一签'}
     </button>
-    
+
     {#if lotteryError}
       <div class="error-message">{lotteryError}</div>
     {/if}
   </div>
 
   <!-- 每日英语 -->
-  <div class="feature-card card-base">
-    <h3 class="feature-title">每日英语-学个单词(词组)吧</h3>
-    <button 
+  <div class="feature">
+    <div class="feature-text">
+      <h3 class="feature-title">背个单词</h3>
+      <p class="feature-sub">随机词条，带音标与例句</p>
+    </div>
+    <button
       type="button"
-      class="feature-btn" 
+      class="feature-btn"
       on:click={fetchEnglishWord}
       disabled={englishLoading}
     >
-      {englishLoading ? '加载中...' : '学一个'}
+      {englishLoading ? '加载中…' : '学一个'}
     </button>
-    
+
     {#if englishError}
       <div class="error-message">{englishError}</div>
     {/if}
@@ -309,48 +314,52 @@ function playPronunciation(url: string, type: "uk" | "us") {
 
 
 <style>
+  /*
+   * 两件小玩意并排。卡片去掉了 —— 它们各自只有一个标题和一个按钮，
+   * 套上边框反而像两个需要认真对待的功能区。
+   */
   .extra-features-container {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 1.5rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.25rem;
   }
 
-  .feature-card {
-    padding: 1.5rem;
-    border-radius: var(--radius-large);
+  .feature {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
   }
+
+  .feature-text { min-width: 0; }
 
   .feature-title {
-    font-size: 1.25rem;
+    font-size: 0.95rem;
     font-weight: 600;
-    color: var(--primary);
-    margin-bottom: 1rem;
+    margin: 0;
   }
 
-  :global(.dark) .feature-title {
-    color: oklch(0.75 0.14 var(--hue));
+  .feature-sub {
+    margin: 0.1rem 0 0;
+    font-size: 0.75rem;
+    opacity: 0.45;
   }
 
   .feature-btn {
     width: 100%;
-    padding: 0.625rem;
-    background: var(--primary);
-    color: white;
-    border: none;
+    margin-top: auto;
+    padding: 0.5rem;
+    background: transparent;
+    color: var(--primary);
+    border: 1px solid color-mix(in oklab, var(--primary) 40%, transparent);
     border-radius: 0.5rem;
-    font-size: 0.875rem;
-    font-weight: 500;
+    font-size: 0.85rem;
+    font-weight: 600;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: background 0.2s, border-color 0.2s, opacity 0.2s;
   }
-
   .feature-btn:hover:not(:disabled) {
-    opacity: 0.9;
-    transform: translateY(-1px);
-  }
-
-  .feature-btn:active:not(:disabled) {
-    transform: translateY(0);
+    background: color-mix(in oklab, var(--primary) 10%, transparent);
+    border-color: var(--primary);
   }
 
   .feature-btn:disabled {
@@ -398,7 +407,9 @@ function playPronunciation(url: string, type: "uk" | "us") {
   }
 
   .modal-content {
-    background: white;
+    /* 原来硬编码 white，靠一条 :global(.dark) 覆盖；直接用主题变量更稳 */
+    background: var(--card-bg);
+    color: inherit;
     border-radius: 1rem;
     max-width: 700px;
     width: 100%;
@@ -717,14 +728,6 @@ function playPronunciation(url: string, type: "uk" | "us") {
     .extra-features-container {
       grid-template-columns: 1fr;
       gap: 1rem;
-    }
-
-    .feature-card {
-      padding: 1rem;
-    }
-
-    .feature-title {
-      font-size: 1.125rem;
     }
 
     .modal-content {

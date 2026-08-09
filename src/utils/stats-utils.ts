@@ -8,6 +8,17 @@
  * 页面变成了展板，逻辑就抽到这里，两边都只调 getWritingStats()。
  */
 import { getSortedPosts } from "@utils/content-utils";
+import { getPostUrlBySlug } from "@utils/url-utils";
+
+/** 展板「最近更新」用的精简条目 —— 只带够列一行的字段，正文不进 props */
+export type RecentPost = {
+	title: string;
+	url: string;
+	/** ISO 日期串，前端转相对时间时再 new Date */
+	published: string;
+	category: string;
+	chars: number;
+};
 
 export type WritingSummary = {
 	posts: number;
@@ -39,6 +50,23 @@ export function countChars(body: string | undefined): number {
 		.replace(/!?\[[^\]]*\]\([^)]*\)/g, "") // 图片与链接语法
 		.replace(/[#>*`~\-_|]/g, "")
 		.replace(/\s+/g, "").length;
+}
+
+/**
+ * 最近发布的几篇，供展板直接跳转。
+ *
+ * 展板此前没有任何一条通往文章的路 —— 统计画了一堆图表，却没法从图上点进任何
+ * 一篇。这是一个博客的展板最该有、却唯独没有的东西。
+ */
+export async function getRecentPosts(limit = 5): Promise<RecentPost[]> {
+	const posts = await getSortedPosts();
+	return posts.slice(0, limit).map((p) => ({
+		title: p.data.title,
+		url: getPostUrlBySlug(p.id),
+		published: new Date(p.data.published).toISOString(),
+		category: (p.data.category ?? "").trim() || "未分类",
+		chars: countChars(p.body),
+	}));
 }
 
 export async function getWritingStats(): Promise<WritingStats> {
@@ -106,7 +134,9 @@ export async function getWritingStats(): Promise<WritingStats> {
 			tags: byTag.size,
 		},
 		calendar,
-		calendarYear: firstDate ? firstDate.getFullYear() : new Date().getFullYear(),
+		calendarYear: firstDate
+			? firstDate.getFullYear()
+			: new Date().getFullYear(),
 		months,
 		categories,
 		tags,
