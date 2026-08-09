@@ -51,6 +51,20 @@
         border-left: 3px solid var(--vk);
         padding-left: 0.9em;
     }
+
+    /*
+     * 引用块要单独处理：站点的左竖条不是 border，而是 blockquote::before 画的
+     * 一根圆角小条（见 markdown.css，颜色取 --btn-regular-bg，blockquote 自身
+     * 的 border 是透明的）。我们再加一条 border-left，就成了两条并排的竖条 ——
+     * 一条主题色、一条色号色，也就是「叠色」。
+     * 引用块直接复用站点那条、只把它染成色号色；border-left 留给段落用。
+     */
+    blockquote.vk-colored {
+        border-left: none;
+    }
+    blockquote.vk-colored::before {
+        background: var(--vk);
+    }
     .vk-colored.vk-solid {
         background: color-mix(in oklab, var(--vk) 12%, transparent);
         border-left: 3px solid var(--vk);
