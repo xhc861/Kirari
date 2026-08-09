@@ -1,0 +1,86 @@
+---
+/**
+ * Banner 底部的波浪。
+ *
+ * 作用是把大图和下方内容衔接起来 —— 原本是一条硬边，图片到内容之间断得很突然。
+ * 三层不同透明度、不同速度的波浪缓慢平移，形成轻微的错位感；速度很慢
+ * （最快一层 18 秒一轮），是背景氛围而不是动画表演。
+ *
+ * 颜色取自页面背景色，所以换主题、切深色模式都不用改这里。
+ */
+---
+
+<div class="banner-wave" aria-hidden="true">
+    <svg viewBox="0 0 1440 120" preserveAspectRatio="none">
+        <defs>
+            <path
+                id="wave-shape"
+                d="M0,64 C180,100 360,20 540,52 C720,84 900,28 1080,56 C1260,84 1380,48 1440,40 L1440,120 L0,120 Z"
+            />
+        </defs>
+        <!-- 三层叠加：靠后的更淡更慢，靠前的更实 -->
+        <g class="wave-layer wave-back">
+            <use href="#wave-shape" x="0" />
+            <use href="#wave-shape" x="1440" />
+        </g>
+        <g class="wave-layer wave-mid">
+            <use href="#wave-shape" x="0" />
+            <use href="#wave-shape" x="1440" />
+        </g>
+        <g class="wave-layer wave-front">
+            <use href="#wave-shape" x="0" />
+            <use href="#wave-shape" x="1440" />
+        </g>
+    </svg>
+</div>
+
+<style>
+    .banner-wave {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        /* 不拦截点击，banner 上的图片说明仍然可点 */
+        pointer-events: none;
+        line-height: 0;
+        z-index: 2;
+    }
+
+    .banner-wave svg {
+        display: block;
+        width: 100%;
+        height: clamp(3rem, 7vw, 5.5rem);
+    }
+
+    .wave-layer use {
+        fill: var(--page-bg);
+    }
+
+    /* 每层各自的透明度与速度，错开后才有层次，不然像一条粗线在平移 */
+    .wave-back {
+        opacity: 0.35;
+        animation: wave-drift 26s linear infinite;
+    }
+    .wave-mid {
+        opacity: 0.6;
+        animation: wave-drift 18s linear infinite reverse;
+    }
+    .wave-front {
+        opacity: 1;
+        animation: wave-drift 22s linear infinite;
+    }
+
+    @keyframes wave-drift {
+        from { transform: translateX(0); }
+        to { transform: translateX(-1440px); }
+    }
+
+    /* 窄屏上波浪压扁一点，别占掉太多首屏 */
+    @media (max-width: 640px) {
+        .banner-wave svg { height: 2.5rem; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .wave-back, .wave-mid, .wave-front { animation: none; }
+    }
+</style>
