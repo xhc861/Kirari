@@ -99,7 +99,7 @@ function applyNavbarSettings() {
                         } else if (url.includes('friends')) {
                             htmlLink.style.display = settings.navbarLinks.friends ? '' : 'none';
                         } else if (url.includes('dashboard')) {
-                            htmlLink.style.display = settings.navbarLinks.gallery ? '' : 'none';
+                            htmlLink.style.display = (settings.navbarLinks.dashboard ?? settings.navbarLinks.gallery) ? '' : 'none';
                         }
                     }
                 });
