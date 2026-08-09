@@ -274,11 +274,17 @@ onDestroy(() => {
       type="button"
       aria-label={isPlaying ? "暂停" : "播放"}
     >
-      <!-- 进度环：不用展开就能看到播到哪了 -->
-      <svg class="ring" viewBox="0 0 44 44" aria-hidden="true">
-        <circle class="ring-track" cx="22" cy="22" r="20" />
+      <!--
+        进度环：不用展开就能看到播到哪了。
+
+        类名必须带 disc- 前缀：`ring` 是 Tailwind 的内置工具类
+        （ring → box-shadow: 0 0 0 1px currentColor）。叫 .ring 会被它命中，
+        给这个没有圆角的 svg 套上一圈 1px 黑边，看起来就是唱片外面一个方框。
+      -->
+      <svg class="disc-ring" viewBox="0 0 44 44" aria-hidden="true">
+        <circle class="disc-ring-track" cx="22" cy="22" r="20" />
         <circle
-          class="ring-fill"
+          class="disc-ring-fill"
           cx="22" cy="22" r="20"
           style={`stroke-dasharray:${2 * Math.PI * 20};stroke-dashoffset:${2 * Math.PI * 20 * (1 - progress / 100)}`}
         />
@@ -530,21 +536,21 @@ onDestroy(() => {
     outline: none;
   }
 
-  /* 进度环 */
-  .ring {
+  /* 进度环。类名的 disc- 前缀是必需的，原因见上面 svg 处的说明 */
+  .disc-ring {
     position: absolute;
     inset: 0;
     width: 100%;
     height: 100%;
     transform: rotate(-90deg);
   }
-  .ring-track,
-  .ring-fill {
+  .disc-ring-track,
+  .disc-ring-fill {
     fill: none;
     stroke-width: 2;
   }
-  .ring-track { stroke: var(--line-divider); }
-  .ring-fill {
+  .disc-ring-track { stroke: var(--line-divider); }
+  .disc-ring-fill {
     stroke: var(--primary);
     stroke-linecap: round;
     transition: stroke-dashoffset 0.25s linear;
@@ -629,7 +635,7 @@ onDestroy(() => {
 
   @media (prefers-reduced-motion: reduce) {
     .spinning { animation: none; }
-    .mini-player, .mini-info, .disc-icon, .ring-fill { transition: none; }
+    .mini-player, .mini-info, .disc-icon, .disc-ring-fill { transition: none; }
   }
 
   /* 展开的播放器 */
@@ -843,6 +849,14 @@ onDestroy(() => {
   .control-btn {
     width: 2.5rem;
     height: 2.5rem;
+    /*
+     * 这一行是 flex，末尾还有个 80px 的音量条，加起来会超出卡片宽度。
+     * flex 项默认可收缩，于是按钮只被压窄、高度不动 —— 正圆就成了椭圆
+     * （实测 2.5rem 的按钮被压成 28.5×38）。宽高固定的圆形按钮必须禁止收缩，
+     * 该让位的是音量条。
+     */
+    flex-shrink: 0;
+    aspect-ratio: 1;
     border-radius: 50%;
     background: rgba(0, 0, 0, 0.05);
     border: none;
@@ -888,7 +902,10 @@ onDestroy(() => {
   }
   
   .volume-slider {
+    /* 按钮不再收缩了，宽度不够时由音量条让位 */
     width: 80px;
+    min-width: 0;
+    flex: 0 1 80px;
     height: 4px;
     -webkit-appearance: none;
     appearance: none;
