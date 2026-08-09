@@ -68,9 +68,16 @@ async function handleShare() {
 	showShareModal = true;
 }
 
-async function exportToPDF() {
-	// 使用浏览器打印功能导出 PDF
-	window.print();
+/*
+ * 导出 PDF。
+ *
+ * 不再直接打印正文页 —— 主布局用 absolute + overflow 定位，打印时绝对定位
+ * 元素只渲染第一页，内容会被截断，靠打印样式一层层掰回来试了两轮都不干净。
+ * 改为跳到 /posts/<slug>/print/：同一套 markdown 管线渲染，但没有任何站点
+ * 外壳，就是一份普通文档流的单栏页面，在那儿导出结果可控。
+ */
+function exportToPDF() {
+	window.location.href = `/posts/${slug}/print/`;
 }
 
 // 激光笔功能

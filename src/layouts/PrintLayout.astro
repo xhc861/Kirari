@@ -1,0 +1,36 @@
+---
+/**
+ * 打印专用布局。
+ *
+ * 和站点主布局完全无关 —— 没有导航栏、侧栏、绝对定位、入场动画，
+ * 就是一份普通文档流的单栏页面。之前反复出现的「内容被截断」「样式没生效」
+ * 都源自主布局的 absolute + overflow 结构，这里从根上避开。
+ *
+ * 只引入 markdown 相关的样式，不引 global.css —— 那会把整套站点样式
+ * （含 Tailwind preflight 与所有组件类）拖进来，纯属浪费。
+ */
+import "../styles/print-page.css";
+import "katex/dist/katex.css";
+import "@fontsource-variable/jetbrains-mono/index.css";
+
+interface Props {
+	title: string;
+	description?: string;
+}
+const { title, description } = Astro.props;
+---
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    {description && <meta name="description" content={description} />}
+    <!-- 这类页面只供导出，不该被搜索引擎收录，否则与正文页重复 -->
+    <meta name="robots" content="noindex, nofollow" />
+</head>
+<body>
+    <slot />
+</body>
+</html>

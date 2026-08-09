@@ -81,12 +81,12 @@ if (title) {
  * 换来的是零请求、按键即出结果。
  */
 const paletteItems = [
-	{ type: "page", title: "首页", url: url("/") },
-	{ type: "page", title: "归档", url: url("/archive/") },
-	{ type: "page", title: "关于", url: url("/about/") },
-	{ type: "page", title: "友链", url: url("/friends/") },
-	{ type: "page", title: "展板", url: url("/dashboard/") },
-	{ type: "page", title: "写作统计", url: url("/stats/") },
+	{ type: "page" as const, title: "首页", url: url("/") },
+	{ type: "page" as const, title: "归档", url: url("/archive/") },
+	{ type: "page" as const, title: "关于", url: url("/about/") },
+	{ type: "page" as const, title: "友链", url: url("/friends/") },
+	{ type: "page" as const, title: "展板", url: url("/dashboard/") },
+	{ type: "page" as const, title: "写作统计", url: url("/stats/") },
 	...(await getSortedPosts()).map((p) => ({
 		type: "post" as const,
 		title: p.data.title,
