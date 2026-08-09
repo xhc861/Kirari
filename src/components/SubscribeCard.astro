@@ -1,0 +1,111 @@
+---
+/**
+ * 订阅引导。
+ *
+ * 站点一直在输出全文 RSS，但页面上没有任何地方提到 —— 等于这个能力对读者
+ * 不存在。这里给一个入口，并说清「订阅之后会发生什么」：不少人没用过 RSS，
+ * 只丢一个 xml 链接他们不会知道该拿它做什么。
+ */
+import { url } from "@utils/url-utils";
+
+interface Props {
+	class?: string;
+}
+const className = Astro.props.class;
+
+const feedUrl = url("/rss.xml");
+---
+
+<div class:list={["subscribe-card card-base px-6 md:px-9 py-6", className]}>
+    <div class="sub-head">
+        <span class="sub-icon" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 11a9 9 0 0 1 9 9"></path>
+                <path d="M4 4a16 16 0 0 1 16 16"></path>
+                <circle cx="5" cy="19" r="1" fill="currentColor"></circle>
+            </svg>
+        </span>
+        <h2 class="sub-title">想收到新文章？</h2>
+    </div>
+
+    <p class="sub-desc">
+        这个博客提供 RSS 全文订阅 —— 用阅读器订阅之后，新文章会自己送到你面前，
+        不用记得回来看，也不需要留邮箱、不用注册任何东西。
+    </p>
+
+    <div class="sub-actions">
+        <a href={feedUrl} class="btn-regular px-4 py-2 rounded-lg text-sm font-medium" target="_blank" rel="noopener">
+            复制订阅地址
+        </a>
+        <button type="button" class="sub-copy btn-card px-4 py-2 rounded-lg text-sm font-medium border border-[var(--line-divider)]" data-feed={feedUrl}>
+            <span class="sub-copy-label">一键复制</span>
+        </button>
+    </div>
+
+    <p class="sub-hint">
+        没用过 RSS 阅读器？常见的有 Feedly、Inoreader、NetNewsWire，
+        把上面的地址粘进去就行。
+    </p>
+</div>
+
+<style>
+    @reference "../styles/theme.css";
+
+    .sub-head {
+        @apply flex items-center gap-2 mb-3;
+    }
+    .sub-icon {
+        @apply flex items-center justify-center w-8 h-8 rounded-lg;
+        background: color-mix(in oklab, var(--primary) 14%, transparent);
+        color: var(--primary);
+    }
+    .sub-title {
+        @apply text-lg font-bold text-90;
+        margin: 0;
+    }
+    .sub-desc {
+        @apply text-75 text-sm leading-relaxed mb-4;
+    }
+    .sub-actions {
+        @apply flex flex-wrap gap-3 mb-3;
+    }
+    .sub-copy {
+        cursor: pointer;
+    }
+    .sub-hint {
+        @apply text-50 text-xs leading-relaxed;
+        margin: 0;
+    }
+</style>
+
+<script is:inline>
+(() => {
+  function bind() {
+    for (const btn of document.querySelectorAll(".sub-copy")) {
+      if (btn.dataset.bound) continue;
+      btn.dataset.bound = "1";
+      btn.addEventListener("click", async () => {
+        const label = btn.querySelector(".sub-copy-label");
+        const feed = new URL(btn.dataset.feed, location.origin).href;
+        try {
+          await navigator.clipboard.writeText(feed);
+          if (label) label.textContent = "已复制";
+        } catch {
+          // 非安全上下文下剪贴板不可用，退回让用户自己复制
+          if (label) label.textContent = feed;
+        }
+        setTimeout(() => {
+          if (label) label.textContent = "一键复制";
+        }, 2200);
+      });
+    }
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", bind, { once: true });
+  } else {
+    bind();
+  }
+  document.addEventListener("swup:page:view", bind);
+})();
+</script>
