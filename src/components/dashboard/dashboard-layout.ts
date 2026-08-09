@@ -14,13 +14,12 @@
 export type SectionId = "daily" | "content" | "tools";
 
 export type ModuleId =
+	| "micronews"
 	| "todo"
 	| "countdown"
 	| "oracle"
 	| "recent"
-	| "micronews"
 	| "stats"
-	| "scoreboard"
 	| "extras"
 	| "ua";
 
@@ -46,22 +45,27 @@ export type ModuleDef = {
 };
 
 export const SECTIONS: { id: SectionId; name: string; hint: string }[] = [
-	{ id: "daily", name: "日常", hint: "今天要做的和要等的" },
+	{ id: "daily", name: "日常", hint: "刚刚发生的，和正在等的" },
 	{ id: "content", name: "内容", hint: "这个站上写了些什么" },
 	{ id: "tools", name: "工具", hint: "顺手放着的几样东西" },
 ];
 
-/** 默认排布。数组顺序即各章节内的初始顺序 */
+/**
+ * 默认排布。数组顺序即各章节内的初始顺序。
+ *
+ * 微新闻排在最前并占通栏：它是这个站「刚刚发生了什么」的唯一出口，
+ * 之前埋在第二章的半栏里，得先滚过一整屏才看得到。通栏之后它内部按
+ * 容器宽度自动分列，宽屏三列、窄屏一列，不会因为变宽就变成一条长队。
+ */
 export const MODULES: ModuleDef[] = [
+	{ id: "micronews", title: "微新闻", section: "daily", size: "full" },
 	{ id: "todo", title: "待办", section: "daily", size: "narrow" },
 	{ id: "countdown", title: "倒计时", section: "daily", size: "narrow" },
 	{ id: "oracle", title: "答案之书", section: "daily", size: "narrow" },
 
 	{ id: "recent", title: "最近更新", section: "content", size: "half" },
-	{ id: "micronews", title: "微新闻", section: "content", size: "half" },
 	{ id: "stats", title: "写作统计", section: "content", size: "full" },
 
-	{ id: "scoreboard", title: "成绩单", section: "tools", size: "full" },
 	{ id: "extras", title: "抽签与每日英语", section: "tools", size: "half" },
 	{ id: "ua", title: "浏览器信息", section: "tools", size: "full", bare: true },
 ];

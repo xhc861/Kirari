@@ -2,7 +2,7 @@
 /**
  * 展板模块的外壳。
  *
- * 标题竖排立在左侧，像书脊上的标签。
+ * 标题竖排立在左侧，像机架上的通道标签。
  *
  * 这不是为了好看才转 90 度。横排标题会吃掉一整行高度 —— 待办这类模块内容
  * 本来就只有两三行，一行标题加一行间距就占去三成。竖排之后标题只占一条
@@ -12,8 +12,8 @@
  * 浏览态左边一条竖标题、右边全是内容，一个按钮都没有。排序、宽度、折叠
  * 收进「整理」模式，从内容区顶部浮出。
  *
- * 摘要（badge）不跟着竖排 —— 「已出 3/11」竖过来要占半屏高。它横排贴在
- * 内容区右上角，折叠之后照样看得见「9 条」「1/2」「未公布」。
+ * 摘要（badge）不跟着竖排 —— 「9 条」竖过来要占半屏高。它横排贴在内容区
+ * 右上角，折叠之后照样看得见「9 条」「1/2」「3 天前」。
  */
 import { createEventDispatcher } from "svelte";
 import { type ModuleSize, SIZES } from "./dashboard-layout";
@@ -66,7 +66,7 @@ $: showTopbar = Boolean(badge) || editing || collapsed;
   on:drop|preventDefault={() => dispatch("drop")}
 >
   {#if showSpine}
-    <!-- 书脊：竖排标题 + 一条点线 -->
+    <!-- 通道标签：竖排标题 + 一条章节色的竖线 -->
     <div class="spine">
       {#if editing}
         <span
@@ -84,7 +84,9 @@ $: showTopbar = Boolean(badge) || editing || collapsed;
   <div class="main">
     {#if showTopbar}
       <div class="topbar">
-        {#if badge}<span class="badge">{badge}</span>{/if}
+        {#if badge}
+          <span class="badge"><i class="badge-dot" aria-hidden="true"></i>{badge}</span>
+        {/if}
 
         {#if editing}
           <div class="tools">
@@ -132,43 +134,72 @@ $: showTopbar = Boolean(badge) || editing || collapsed;
 
 <style>
   .module {
+    position: relative;
     display: flex;
     align-items: stretch;
-    gap: 0.9rem;
+    gap: 0.85rem;
     min-width: 0;
-    padding: 0.15rem 0.2rem;
-    border-radius: 0.5rem;
+    padding: 0.35rem 0.45rem;
     transition: background 0.25s ease, box-shadow 0.25s ease;
+    --tint: var(--sec-tint, var(--primary));
+    --mono: "JetBrains Mono Variable", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   }
 
   /*
-   * 悬停时纸片轻轻抬起。不做位移 —— 栅格里一堆块同时挪动会晕；
-   * 只让底色浮出来一点，像手指按在纸上。
+   * 四角的取景框角标。没有边框把模块圈起来 —— 只在四角点一下，
+   * 既划出范围又不把版面切成一格一格。
    */
+  .module::before,
+  .module::after {
+    content: "";
+    position: absolute;
+    width: 0.55rem;
+    height: 0.55rem;
+    border: 1px solid var(--tint);
+    opacity: 0.3;
+    pointer-events: none;
+    transition: opacity 0.25s ease, width 0.25s ease, height 0.25s ease;
+  }
+  .module::before {
+    top: 0; left: 0;
+    border-right: 0; border-bottom: 0;
+  }
+  .module::after {
+    bottom: 0; right: 0;
+    border-left: 0; border-top: 0;
+  }
+
+  /* 悬停时角标张开并亮起，底下浮出一层极淡的章节色 */
+  .module:hover::before,
+  .module:hover::after {
+    opacity: 0.75;
+    width: 0.9rem;
+    height: 0.9rem;
+  }
   .module:hover {
-    background: color-mix(in oklab, var(--sec-tint, var(--primary)) 5%, transparent);
+    background: color-mix(in oklab, var(--tint) 5%, transparent);
   }
 
   .module.editing {
-    outline: 1px dashed color-mix(in oklab, var(--sec-tint, var(--primary)) 50%, transparent);
-    outline-offset: 0.45rem;
+    outline: 1px dashed color-mix(in oklab, var(--tint) 50%, transparent);
+    outline-offset: 0.4rem;
   }
   .module.drop-target {
-    outline: 2px solid var(--sec-tint, var(--primary));
-    outline-offset: 0.45rem;
-    background: color-mix(in oklab, var(--sec-tint, var(--primary)) 10%, transparent);
+    outline: 1px solid var(--tint);
+    outline-offset: 0.4rem;
+    background: color-mix(in oklab, var(--tint) 10%, transparent);
+    box-shadow: 0 0 18px color-mix(in oklab, var(--tint) 30%, transparent);
   }
 
-  /* ---------- 书脊 ---------- */
+  /* ---------- 通道标签 ---------- */
   .spine {
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 0.4rem;
-    padding-right: 0.75rem;
-    /* 点线而不是实线：手账的裁切线，比边框轻 */
-    border-right: 1px dashed color-mix(in oklab, var(--sec-tint, var(--primary)) 32%, transparent);
+    padding-right: 0.7rem;
+    border-right: 1px solid color-mix(in oklab, var(--tint) 28%, transparent);
   }
 
   .heading {
@@ -176,12 +207,14 @@ $: showTopbar = Boolean(badge) || editing || collapsed;
     writing-mode: vertical-rl;
     /* 中文在竖排里本就正立，这里只是把标题里可能出现的数字一并摆正 */
     text-orientation: mixed;
-    font-size: 0.82rem;
+    font-family: var(--mono);
+    font-size: 0.78rem;
     font-weight: 700;
-    letter-spacing: 0.22em;
+    letter-spacing: 0.3em;
     line-height: 1;
     white-space: nowrap;
-    color: color-mix(in oklab, var(--sec-tint, var(--primary)) 78%, transparent);
+    color: var(--tint);
+    opacity: 0.85;
   }
 
   .handle {
@@ -212,14 +245,25 @@ $: showTopbar = Boolean(badge) || editing || collapsed;
 
   /* 折叠后仍然看得见的那句摘要 */
   .badge {
-    font-size: 0.7rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-family: var(--mono);
+    font-size: 0.68rem;
     font-weight: 600;
-    padding: 0.08rem 0.45rem;
-    border-radius: 9999px;
-    color: color-mix(in oklab, var(--sec-tint, var(--primary)) 88%, transparent);
-    background: color-mix(in oklab, var(--sec-tint, var(--primary)) 12%, transparent);
+    padding: 0.1rem 0.45rem;
+    border-radius: 0.25rem;
+    color: var(--tint);
+    background: color-mix(in oklab, var(--tint) 12%, transparent);
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
+  }
+  .badge-dot {
+    width: 0.3rem;
+    height: 0.3rem;
+    border-radius: 50%;
+    background: currentColor;
+    box-shadow: 0 0 5px currentColor;
   }
 
   .tools {
@@ -233,16 +277,17 @@ $: showTopbar = Boolean(badge) || editing || collapsed;
   .seg {
     display: flex;
     padding: 0.1rem;
-    border-radius: 9999px;
+    border-radius: 0.3rem;
     background: var(--btn-regular-bg);
   }
   .seg-btn {
     padding: 0.1rem 0.5rem;
     border: none;
-    border-radius: 9999px;
+    border-radius: 0.22rem;
     background: transparent;
     color: var(--btn-content);
-    font-size: 0.7rem;
+    font-family: var(--mono);
+    font-size: 0.68rem;
     font-weight: 600;
     cursor: pointer;
     transition: background 0.15s ease, color 0.15s ease;
@@ -250,10 +295,10 @@ $: showTopbar = Boolean(badge) || editing || collapsed;
   .seg-btn:hover { background: var(--btn-plain-bg-hover); }
   .seg-btn.on {
     background: var(--card-bg);
-    color: var(--primary);
+    color: var(--tint);
   }
   /* 窄屏一律通栏，宽度选择在那儿不起作用，索性收掉 */
-  @media (max-width: 1023px) {
+  @media (max-width: 767px) {
     .seg { display: none; }
   }
 
@@ -264,7 +309,7 @@ $: showTopbar = Boolean(badge) || editing || collapsed;
     display: grid;
     place-items: center;
     border: none;
-    border-radius: 0.35rem;
+    border-radius: 0.25rem;
     background: transparent;
     color: inherit;
     opacity: 0.5;
@@ -285,15 +330,16 @@ $: showTopbar = Boolean(badge) || editing || collapsed;
   .expand {
     margin-left: auto;
     padding: 0.08rem 0.55rem;
-    border: none;
-    border-radius: 9999px;
-    background: var(--btn-regular-bg);
-    color: var(--btn-content);
-    font-size: 0.7rem;
+    border: 1px solid color-mix(in oklab, var(--tint) 30%, transparent);
+    border-radius: 0.25rem;
+    background: transparent;
+    color: var(--tint);
+    font-family: var(--mono);
+    font-size: 0.68rem;
     cursor: pointer;
     transition: background 0.15s ease;
   }
-  .expand:hover { background: var(--btn-plain-bg-hover); }
+  .expand:hover { background: color-mix(in oklab, var(--tint) 12%, transparent); }
 
   .body { min-width: 0; }
 
@@ -310,29 +356,31 @@ $: showTopbar = Boolean(badge) || editing || collapsed;
   }
 
   /*
-   * 窄屏把书脊放平。
+   * 窄容器把通道标签放平。
    *
-   * 「抽签与每日英语」七个字竖起来就是七行高 —— 在单列布局里，一条七字高的
-   * 竖标题旁边只有几行内容，纸就被撑歪了。所以窄屏回到横排。
+   * 判据是**容器**宽度不是视口：「抽签与每日英语」七个字竖起来就是七行高，
+   * 旁边只有一列窄内容时纸就被撑歪了 —— 而这跟屏幕多宽无关，
+   * 同一块在宽屏里被调成三分之一栏也一样窄。
    */
-  @media (max-width: 640px) {
-    .module { display: block; padding: 0; }
+  @container mod (max-width: 22rem) {
+    .module { display: block; padding: 0.3rem 0; }
     .spine {
       flex-direction: row;
       align-items: baseline;
       gap: 0.5rem;
       padding: 0 0 0.4rem;
-      margin-bottom: 0.6rem;
+      margin-bottom: 0.55rem;
       border-right: none;
-      border-bottom: 1px dashed color-mix(in oklab, var(--sec-tint, var(--primary)) 32%, transparent);
+      border-bottom: 1px solid color-mix(in oklab, var(--tint) 28%, transparent);
     }
     .heading {
       writing-mode: horizontal-tb;
-      letter-spacing: 0.1em;
+      letter-spacing: 0.14em;
     }
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .module, .caret, .icon-btn, .seg-btn, .expand { transition: none; }
+    .module, .module::before, .module::after,
+    .caret, .icon-btn, .seg-btn, .expand { transition: none; }
   }
 </style>

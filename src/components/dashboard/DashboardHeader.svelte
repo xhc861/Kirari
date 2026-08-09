@@ -83,17 +83,20 @@ $: dayPercentText = `今天过了 ${Math.round(dayProgress)}%`;
     <div class="date">{dateText}</div>
   </div>
 
-  <!-- 分隔线兼今日进度：虚线是走过的刻度，实线是已经过掉的部分 -->
-  <div
-    class="dayline"
-    role="progressbar"
-    title={dayPercentText}
-    aria-label="今天已过去"
-    aria-valuemin="0"
-    aria-valuemax="100"
-    aria-valuenow={Math.round(dayProgress)}
-  >
-    <div class="dayline-fill" style={`width: ${dayProgress}%`}></div>
+  <!-- 分隔线兼今日进度：分段刻度表，走过的段亮起 -->
+  <div class="meter-row">
+    <div
+      class="meter"
+      role="progressbar"
+      title={dayPercentText}
+      aria-label="今天已过去"
+      aria-valuemin="0"
+      aria-valuemax="100"
+      aria-valuenow={Math.round(dayProgress)}
+    >
+      <div class="meter-fill" style={`width: ${dayProgress}%`}></div>
+    </div>
+    <span class="meter-label">{Math.round(dayProgress)}%</span>
   </div>
 </header>
 
@@ -131,26 +134,38 @@ $: dayPercentText = `今天过了 ${Math.round(dayProgress)}%`;
     gap: 0.9rem;
   }
 
-  /* 目录页那串把标题连到页码的点 */
+  /*
+   * 把左右两端拴在同一条基线上的刻度尺。
+   * 宽屏下问候和时钟会被拉开一整屏，中间不给点东西，两头就各飘各的。
+   */
   .leader {
     flex: 1;
     min-width: 1.5rem;
-    height: 1px;
+    height: 0.45rem;
     align-self: flex-end;
-    margin-bottom: 0.55rem;
-    background-image: repeating-linear-gradient(
-      90deg,
-      color-mix(in oklab, var(--primary) 42%, transparent) 0 2px,
-      transparent 2px 8px
-    );
+    margin-bottom: 0.5rem;
+    /* 底部一条实线 + 均匀的短刻度，像尺子的边 */
+    background-image:
+      linear-gradient(color-mix(in oklab, var(--primary) 28%, transparent) 0 0),
+      repeating-linear-gradient(
+        90deg,
+        color-mix(in oklab, var(--primary) 40%, transparent) 0 1px,
+        transparent 1px 12px
+      );
+    background-size: 100% 1px, 100% 100%;
+    background-position: 0 100%, 0 0;
+    background-repeat: no-repeat, repeat-x;
   }
   .leader.thin {
-    margin-bottom: 0.32rem;
-    background-image: repeating-linear-gradient(
-      90deg,
-      color-mix(in oklab, currentColor 22%, transparent) 0 1px,
-      transparent 1px 6px
-    );
+    height: 0.3rem;
+    margin-bottom: 0.3rem;
+    background-image:
+      linear-gradient(color-mix(in oklab, currentColor 16%, transparent) 0 0),
+      repeating-linear-gradient(
+        90deg,
+        color-mix(in oklab, currentColor 22%, transparent) 0 1px,
+        transparent 1px 9px
+      );
   }
 
   .greet {
@@ -174,6 +189,8 @@ $: dayPercentText = `今天过了 ${Math.round(dayProgress)}%`;
     line-height: 1;
     letter-spacing: -0.03em;
     color: rgba(0, 0, 0, 0.78);
+    /* 一点极淡的辉光，让秒针跳动时有「亮着」的感觉 */
+    text-shadow: 0 0 24px color-mix(in oklab, var(--primary) 22%, transparent);
   }
   :global(.dark) .clock { color: rgba(255, 255, 255, 0.82); }
 
@@ -213,31 +230,54 @@ $: dayPercentText = `今天过了 ${Math.round(dayProgress)}%`;
   }
   :global(.dark) .date { color: rgba(255, 255, 255, 0.4); }
 
-  /* 开屏区与正文之间的分隔线，同时是今天的进度 */
-  .dayline {
-    margin-top: 1.1rem;
-    height: 3px;
-    /* 未走完的部分是刻度虚线，走过的是实心 —— 一条线说两件事 */
+  /*
+   * 开屏区与正文之间的分隔，同时是今天的进度。
+   *
+   * 分段而不是连续 —— 一条平滑的进度条读不出「过了多少」，
+   * 一格一格的刻度表扫一眼就知道大概到哪儿了。
+   */
+  .meter-row {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-top: 1.05rem;
+  }
+
+  .meter {
+    flex: 1;
+    height: 6px;
+    overflow: hidden;
+    /* 未走到的段：暗格 */
     background-image: repeating-linear-gradient(
       90deg,
-      var(--line-divider) 0 4px,
-      transparent 4px 9px
+      var(--line-divider) 0 5px,
+      transparent 5px 8px
     );
   }
-  .dayline-fill {
+  .meter-fill {
     height: 100%;
-    border-radius: 3px;
-    background: linear-gradient(
+    /* 走过的段：同样的节奏，亮起来并带一点辉光 */
+    background-image: repeating-linear-gradient(
       90deg,
-      color-mix(in oklab, var(--primary) 22%, transparent) 0%,
-      color-mix(in oklab, var(--primary) 70%, transparent) 100%
+      var(--primary) 0 5px,
+      transparent 5px 8px
     );
+    filter: drop-shadow(0 0 4px color-mix(in oklab, var(--primary) 55%, transparent));
     transition: width 1s linear;
+  }
+
+  .meter-label {
+    flex-shrink: 0;
+    font-family: "JetBrains Mono Variable", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.68rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--primary);
+    opacity: 0.6;
   }
 
   @media (prefers-reduced-motion: reduce) {
     .sec-sep { animation: none; }
-    .dayline-fill { transition: none; }
+    .meter-fill { transition: none; }
   }
 
   @media (max-width: 640px) {

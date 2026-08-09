@@ -147,8 +147,10 @@ $: parts = env
 {/if}
 
 <style>
+  /* 这一行本来就是一串读数，等宽最合适 */
   .env {
-    font-size: 0.72rem;
+    font-family: "JetBrains Mono Variable", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.7rem;
     line-height: 1.7;
     color: rgba(0, 0, 0, 0.35);
   }
