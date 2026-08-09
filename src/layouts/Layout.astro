@@ -7,6 +7,7 @@ import "@fontsource/roboto/400.css";
 import "@fontsource/roboto/500.css";
 import "@fontsource/roboto/700.css";
 
+import CommandPalette from "@components/CommandPalette.svelte";
 import ConfigCarrier from "@components/ConfigCarrier.astro";
 import MusicPlayerWrapper from "@components/MusicPlayerWrapper.astro";
 import Notification from "@components/Notification.svelte";
@@ -24,6 +25,11 @@ import {
 } from "../constants/constants";
 import { defaultFavicons } from "../constants/icon";
 import type { Favicon } from "../types/config";
+import {
+	getCategoryList,
+	getSortedPosts,
+	getTagList,
+} from "../utils/content-utils";
 import { resolveOgImage } from "../utils/og-utils";
 import { pathsEqual, url } from "../utils/url-utils";
 import "katex/dist/katex.css";
@@ -69,6 +75,37 @@ if (title) {
 } else {
 	pageTitle = `${siteConfig.title} - ${siteConfig.subtitle}`;
 }
+
+/*
+ * 命令面板的索引。在构建期生成并内联传入 —— 文章不多，几 KB 而已，
+ * 换来的是零请求、按键即出结果。
+ */
+const paletteItems = [
+	{ type: "page", title: "首页", url: url("/") },
+	{ type: "page", title: "归档", url: url("/archive/") },
+	{ type: "page", title: "关于", url: url("/about/") },
+	{ type: "page", title: "友链", url: url("/friends/") },
+	{ type: "page", title: "展板", url: url("/dashboard/") },
+	{ type: "page", title: "写作统计", url: url("/stats/") },
+	...(await getSortedPosts()).map((p) => ({
+		type: "post" as const,
+		title: p.data.title,
+		url: url(`/posts/${p.id}/`),
+		meta: new Date(p.data.published).toISOString().slice(0, 10),
+	})),
+	...(await getTagList()).map((t) => ({
+		type: "tag" as const,
+		title: t.name,
+		url: url(`/tags/${encodeURIComponent(t.name)}/`),
+		meta: `${t.count} 篇`,
+	})),
+	...(await getCategoryList()).map((c) => ({
+		type: "category" as const,
+		title: c.name,
+		url: c.url,
+		meta: `${c.count} 篇`,
+	})),
+];
 
 const favicons: Favicon[] =
 	siteConfig.favicon.length > 0 ? siteConfig.favicon : defaultFavicons;
@@ -176,6 +213,7 @@ const bannerOffset =
 			<ConfigCarrier></ConfigCarrier>
 			<!-- @ts-ignore -->
 			<slot /><Notification client:only="svelte"></Notification>
+			<CommandPalette client:idle items={paletteItems} />
 			<MusicPlayerWrapper />
 			<SpecialEffects />
 
