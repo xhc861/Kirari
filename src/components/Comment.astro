@@ -1,20 +1,63 @@
 <div id="comment" class="giscus-container card-base p-6 rounded-xl mt-4">
     <h3 class="text-xl font-bold mb-4 text-black/90 dark:text-white/90">评论区</h3>
-    <script is:inline src="https://giscus.app/client.js"
-        data-repo="xhc861/Kirari"
-        data-repo-id="R_kgDOQypWgA"
-        data-category="General"
-        data-category-id="DIC_kwDOQypWgM4C2Kgg"
-        data-mapping="pathname"
-        data-strict="0"
-        data-reactions-enabled="1"
-        data-emit-metadata="1"
-        data-input-position="bottom"
-        data-theme="preferred_color_scheme"
-        data-lang="zh-CN"
-        crossorigin="anonymous"
-        async>
-</script>
+    <!--
+      giscus 的主题必须跟着**站点**的明暗走，不能用 preferred_color_scheme ——
+      那个读的是操作系统的配色偏好，跟本站的明暗开关是两回事。系统深色 + 站点
+      切到浅色时，giscus 仍按深色主题渲染，浅色文字落在白色卡片上就看不见了
+      （「0 个表情」「0 条评论」发白就是这么来的）。
+
+      所以改成：挂载时按当前 .dark 类决定初始主题，之后用 MutationObserver
+      盯住 <html> 的 class，切换时 postMessage 通知 iframe 换主题。
+      盯 class 而不是接主题开关的事件，是为了让自动模式、跨页导航等各种
+      触发路径都能覆盖到。
+    -->
+    <script is:inline>
+        (() => {
+            const GISCUS_ORIGIN = "https://giscus.app";
+            const container = document.getElementById("comment");
+            if (!container || container.dataset.giscusMounted) return;
+            container.dataset.giscusMounted = "1";
+
+            const themeName = () =>
+                document.documentElement.classList.contains("dark") ? "dark" : "light";
+
+            const script = document.createElement("script");
+            script.src = `${GISCUS_ORIGIN}/client.js`;
+            Object.assign(script.dataset, {
+                repo: "xhc861/Kirari",
+                repoId: "R_kgDOQypWgA",
+                category: "General",
+                categoryId: "DIC_kwDOQypWgM4C2Kgg",
+                mapping: "pathname",
+                strict: "0",
+                reactionsEnabled: "1",
+                emitMetadata: "1",
+                inputPosition: "bottom",
+                theme: themeName(),
+                lang: "zh-CN",
+            });
+            script.crossOrigin = "anonymous";
+            script.async = true;
+            container.appendChild(script);
+
+            let current = themeName();
+            const observer = new MutationObserver(() => {
+                const next = themeName();
+                if (next === current) return;
+                current = next;
+                const frame = document.querySelector("iframe.giscus-frame");
+                // iframe 还没建好时不用管，初始 data-theme already 是对的
+                frame?.contentWindow?.postMessage(
+                    { giscus: { setConfig: { theme: next } } },
+                    GISCUS_ORIGIN,
+                );
+            });
+            observer.observe(document.documentElement, {
+                attributes: true,
+                attributeFilter: ["class"],
+            });
+        })();
+    </script>
 </div>
 
 <style>
