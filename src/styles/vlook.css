@@ -9,8 +9,20 @@
 
 .custom-md {
     /* ---------- 色号着色 ---------- */
+    /*
+     * 亮暗两套色值由插件写在元素的内联 style 上（--vk-c / --vk-c-dark）。
+     * 内联样式的优先级高于任何样式表规则，所以不能在样式表里重新给 --vk-c
+     * 赋值来切换深色 —— 那条规则永远赢不过内联值。
+     * 这里派生一个只存在于样式表中的 --vk，深色模式改写它即可；
+     * 下面所有用到颜色的地方一律用 var(--vk)，不要直接用 --vk-c。
+     */
+    .vk-color,
+    .vk-colored {
+        --vk: var(--vk-c);
+    }
+
     .vk-color {
-        color: var(--vk-c);
+        color: var(--vk);
     }
 
     /*
@@ -18,7 +30,7 @@
      * color 会当它无效直接忽略。只能当背景画出来，再裁到文字形状上。
      */
     .vk-color.vk-gradient {
-        background-image: var(--vk-c);
+        background-image: var(--vk);
         -webkit-background-clip: text;
         background-clip: text;
         color: transparent;
@@ -26,7 +38,7 @@
 
     /* 实心强调式：色值当底，文字反白。渐变时这里也要把裁剪还原回来 */
     .vk-color.vk-solid {
-        background: var(--vk-c);
+        background: var(--vk);
         -webkit-background-clip: border-box;
         background-clip: border-box;
         color: var(--card-bg);
@@ -36,12 +48,12 @@
 
     /* 独占一行的色号会给整段/整个引用块着色 */
     .vk-colored.vk-outline {
-        border-left: 3px solid var(--vk-c);
+        border-left: 3px solid var(--vk);
         padding-left: 0.9em;
     }
     .vk-colored.vk-solid {
-        background: color-mix(in oklab, var(--vk-c) 12%, transparent);
-        border-left: 3px solid var(--vk-c);
+        background: color-mix(in oklab, var(--vk) 12%, transparent);
+        border-left: 3px solid var(--vk);
         padding: 0.6em 0.9em;
         border-radius: 0 0.5rem 0.5rem 0;
     }
@@ -160,11 +172,20 @@
     .vk-img-flipv  { transform: scaleY(-1); }
 }
 
-/* 深色模式下改用 dark 那套色值 */
-:global(.dark) .custom-md {
+/*
+ * 深色模式下改用 dark 那套色值。
+ *
+ * 这里原来写的是 `:global(.dark)`。:global() 是 Svelte / CSS Modules 的构造，
+ * 不是 CSS 选择器；本文件是被 global.css @import 的普通样式表，没有作用域化
+ * 这一步，于是它原样进了产物。更麻烦的是编译后它被包进 :is()，而 :is() 是
+ * 容错的 —— 非法选择器不会让规则报错，只是永远匹配不到元素。结果就是深色
+ * 模式下全站沿用亮色色值：灰色 #4b5563、金色 #b45309 压在近黑底上几乎看不见，
+ * 表现为「这几个颜色渲染不出来」。
+ */
+.dark .custom-md {
     .vk-color,
     .vk-colored {
-        --vk-c: var(--vk-c-dark);
+        --vk: var(--vk-c-dark);
     }
 }
 
