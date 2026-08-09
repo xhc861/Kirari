@@ -9,6 +9,40 @@ import type { SearchResult } from "@/global";
 
 
 let keywordDesktop = "";
+
+/** 搜索历史，只存本机 */
+const HISTORY_KEY = "kirari:search-history";
+const HISTORY_MAX = 6;
+let history: string[] = [];
+/** 搜过但没结果 —— 用于区分「还没搜」和「搜了没找到」 */
+let searched = false;
+
+function loadHistory() {
+	try {
+		const raw = localStorage.getItem(HISTORY_KEY);
+		history = raw ? JSON.parse(raw) : [];
+	} catch {
+		history = [];
+	}
+}
+
+function rememberQuery(q: string) {
+	const k = q.trim();
+	if (!k) return;
+	history = [k, ...history.filter((h) => h !== k)].slice(0, HISTORY_MAX);
+	try {
+		localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+	} catch {
+		/* 隐私模式下写不进去，历史只在本次会话有效 */
+	}
+}
+
+function clearHistory() {
+	history = [];
+	try {
+		localStorage.removeItem(HISTORY_KEY);
+	} catch {}
+}
 let keywordMobile = "";
 let result: SearchResult[] = [];
 let isSearching = false;
@@ -51,8 +85,10 @@ const setPanelVisibility = (show: boolean, isDesktop: boolean): void => {
 
 const search = async (keyword: string, isDesktop: boolean): Promise<void> => {
 	if (!keyword) {
-		setPanelVisibility(false, isDesktop);
+		searched = false;
 		result = [];
+		// 空输入时若有历史，仍然展开面板把历史给出来
+		setPanelVisibility(history.length > 0, isDesktop);
 		return;
 	}
 
@@ -78,17 +114,25 @@ const search = async (keyword: string, isDesktop: boolean): Promise<void> => {
 		}
 
 		result = searchResults;
-		setPanelVisibility(result.length > 0, isDesktop);
+		searched = true;
+		if (result.length > 0) rememberQuery(keyword);
+		/*
+		 * 零结果时也要展开面板。原来这里传的是 result.length > 0，
+		 * 搜不到就整个面板消失，用户得不到任何反馈，像是功能坏了。
+		 */
+		setPanelVisibility(true, isDesktop);
 	} catch (error) {
 		console.error("Search error:", error);
 		result = [];
-		setPanelVisibility(false, isDesktop);
+		searched = true;
+		setPanelVisibility(true, isDesktop);
 	} finally {
 		isSearching = false;
 	}
 };
 
 onMount(() => {
+	loadHistory();
 	const initializeSearch = () => {
 		initialized = true;
 		pagefindLoaded =
@@ -168,6 +212,29 @@ top-20 left-4 md:left-[unset] right-4 shadow-2xl rounded-2xl p-2">
         >
     </div>
 
+    <!-- 空输入时给出搜索历史 -->
+    {#if !keywordDesktop && history.length > 0}
+        <div class="search-aux">
+            <div class="search-aux-head">
+                <span>最近搜过</span>
+                <button type="button" class="search-clear" on:click={clearHistory}>清空</button>
+            </div>
+            <div class="search-history">
+                {#each history as h}
+                    <button type="button" class="search-chip" on:click={() => { keywordDesktop = h; }}>{h}</button>
+                {/each}
+            </div>
+        </div>
+    {/if}
+
+    <!-- 搜了但没找到：给出反馈而不是让面板消失 -->
+    {#if searched && keywordDesktop && result.length === 0 && !isSearching}
+        <div class="search-aux search-empty">
+            <div class="search-empty-title">没找到「{keywordDesktop}」相关的内容</div>
+            <div class="search-empty-hint">换个说法试试，或者去归档里翻翻。</div>
+        </div>
+    {/if}
+
     <!-- search results -->
     {#each result as item}
         <a href={item.url}
@@ -186,6 +253,63 @@ top-20 left-4 md:left-[unset] right-4 shadow-2xl rounded-2xl p-2">
 <style>
   input:focus {
     outline: 0;
+  }
+
+  .search-aux {
+    padding: 0.75rem 0.75rem 0.25rem;
+  }
+  .search-aux-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    opacity: 0.5;
+    margin-bottom: 0.5rem;
+  }
+  .search-clear {
+    border: none;
+    background: none;
+    font: inherit;
+    cursor: pointer;
+    color: inherit;
+    opacity: 0.8;
+  }
+  .search-clear:hover { color: var(--primary); opacity: 1; }
+
+  .search-history {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+  .search-chip {
+    padding: 0.25rem 0.6rem;
+    border-radius: 9999px;
+    border: none;
+    cursor: pointer;
+    font-size: 0.8rem;
+    background: var(--btn-regular-bg);
+    color: var(--btn-content);
+    transition: background 0.2s ease;
+  }
+  .search-chip:hover { background: var(--btn-regular-bg-hover); }
+
+  .search-empty {
+    padding: 1rem 0.9rem;
+  }
+  .search-empty-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: rgba(0, 0, 0, 0.75);
+    margin-bottom: 0.25rem;
+  }
+  :global(.dark) .search-empty-title { color: rgba(255, 255, 255, 0.78); }
+  .search-empty-hint {
+    font-size: 0.8rem;
+    opacity: 0.55;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .search-chip { transition: none; }
   }
   .search-panel {
     max-height: calc(100vh - 100px);
