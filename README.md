@@ -39,12 +39,65 @@ Tailwind v4 下，样式入口为 `src/styles/global.css`，Tailwind 本体与�
 `src/styles/theme.css`（引用根）。组件或页面的 scoped `<style>` 中若要用 `@apply`，
 需先在样式块内写 `@reference "…/theme.css";`。
 
-## 🌿 分支
+## 🌿 分支与发布流程
 
-| 分支 | 内容 |
-| --- | --- |
-| `main` | 不含文章的干净模板 |
-| `content` | 含完整文章与个人数据的站点 |
+| 分支 | 内容 | 用途 |
+| --- | --- | --- |
+| `content` | 完整站点：全部文章与个人数据 | **线上部署的就是这个分支** |
+| `main` | 不含文章的干净模板 | 供他人 fork 使用 |
+
+两条铁律：
+
+1. **文章只写在 `content`**，`main` 的 `src/content/posts/` 永远只有 `.gitkeep`。
+2. **代码改动先在 `main` 做，再 cherry-pick 到 `content`**；不要用 merge ——
+   merge 会把 main 上「清空文章」那个提交带过去，把 `content` 的文章删掉。
+
+### 发布一篇新文章
+
+```bash
+git checkout content              # 文章只在这个分支
+pnpm new-post 我的新文章           # 生成 src/content/posts/我的新文章.md
+# ……写正文，记得填 frontmatter 的 summary（文章顶部的「太长不看」）
+
+pnpm build                        # 本地验证：能构建、渲染无误
+git add src/content/posts/
+git commit -m "post: 我的新文章"
+git push origin content           # 推完 Vercel 自动部署
+```
+
+`main` 不需要任何操作 —— 它本来就不该有文章。
+
+### 改代码（不涉及文章）
+
+```bash
+git checkout main
+# ……改代码
+pnpm check && pnpm build          # 两项都要过
+git commit -am "fix: xxx"
+git push origin main
+
+git checkout content
+git cherry-pick main              # 把这次改动搬过来
+pnpm build                        # 关键：main 没有文章，文章页的代码在 main 上根本
+                                  # 不会被编译，有些错误只在 content 才暴露
+git push origin content
+```
+
+### 常见问题
+
+**文章不小心提交到 `main` 了？**
+
+```bash
+git checkout main
+git rm src/content/posts/<文件名>
+git commit -m "chore: 从 main 移除文章"
+git push origin main
+```
+
+**只想改一篇已发布的文章？** 直接在 `content` 上改并推送即可，与 `main` 无关。
+
+**Vercel 部署的是哪个分支？** 应为 `content`。若被切成 `main`，线上会变成一个
+没有任何文章的空站 —— 改动 Vercel 设置时留意这一点。
 
 ## 📄 License
 
