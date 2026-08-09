@@ -1,0 +1,4 @@
+# Git 钩子是交给 sh 执行的，行尾若被转成 CRLF，sh 会把行尾的 \r 当成命令的一部分
+# 直接报错。这台机器上 core.autocrlf=true，所以必须在这里钉死 LF。
+scripts/hooks/* text eol=lf
+*.sh text eol=lf
