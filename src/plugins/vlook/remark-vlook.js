@@ -176,6 +176,59 @@ export function remarkVLook() {
 			);
 		});
 
+
+		/* ---------- 7. 按钮链接 [<kbd>文字</kbd>](url) ---------- */
+		visit(tree, "link", (node, index, parent) => {
+			if (!parent || index === null) return;
+			/*
+			 * <kbd> 会被 remark 解析成独立的 html 节点（开标签、文本、闭标签三段），
+			 * 不是包裹结构，所以要把子节点原样拼起来再匹配，
+			 * toText 只取文本会漏掉标签本身。
+			 */
+			const raw = node.children
+				.map((c) =>
+					c.type === "html" ? c.value : c.type === "text" ? c.value : "",
+				)
+				.join("")
+				.trim();
+			const m = /^<kbd>([\s\S]*?)<\/kbd>$/.exec(raw);
+			if (!m) return;
+			parent.children[index] = html(
+				`<a class="vk-btn-link" href="${escapeHtml(node.url)}">${escapeHtml(m[1])}</a>`,
+			);
+		});
+
+		/* ---------- 8. 进度条 **==75%==** ---------- */
+		visit(tree, "strong", (node, index, parent) => {
+			if (!parent || index === null) return;
+			const only = node.children.length === 1 ? node.children[0] : null;
+			if (!only || only.type !== "vlookMark") return;
+			const m = /^(\d{1,3}(?:\.\d+)?)\s*%$/.exec(String(only.value).trim());
+			if (!m) return;
+			const pct = Math.min(100, Math.max(0, Number(m[1])));
+			parent.children[index] = html(
+				`<span class="vk-progress" role="img" aria-label="进度 ${pct}%">` +
+					`<span class="vk-progress-track"><span class="vk-progress-fill" style="width:${pct}%"></span></span>` +
+					`<span class="vk-progress-num">${m[1]}%</span></span>`,
+			);
+		});
+
+		/* ---------- 9. 刮刮卡 *提示**内容*** ---------- */
+		// 斜体里嵌加粗：提示文字用斜体，被遮住的内容用加粗
+		visit(tree, "emphasis", (node, index, parent) => {
+			if (!parent || index === null) return;
+			const strong = node.children.find((c) => c.type === "strong");
+			if (!strong) return;
+			const hint = toText(node.children.filter((c) => c !== strong)).trim();
+			const secret = toText(strong.children);
+			if (!secret) return;
+			parent.children[index] = html(
+				`<span class="vk-scratch" tabindex="0" role="button" ` +
+					`aria-label="${escapeHtml(hint || "点击显示")}">` +
+					`<span class="vk-scratch-text">${escapeHtml(secret)}</span></span>`,
+			);
+		});
+
 		/* ---------- 6. 可折叠引用块 > ###### 标题 ---------- */
 		visit(tree, "blockquote", (node) => {
 			const first = node.children[0];

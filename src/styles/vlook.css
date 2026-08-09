@@ -221,3 +221,96 @@
         font-variant-numeric: tabular-nums;
     }
 }
+
+/* ---------- 按钮链接 ---------- */
+.custom-md {
+    .vk-btn-link {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.2em 0.85em;
+        border-radius: 0.4rem;
+        background: var(--btn-regular-bg);
+        color: var(--btn-content);
+        font-size: 0.9em;
+        font-weight: 500;
+        text-decoration: none;
+        border-bottom: none;
+        transition: background 0.2s ease, transform 0.15s ease;
+    }
+    .vk-btn-link:hover {
+        background: var(--btn-regular-bg-hover);
+        transform: translateY(-1px);
+        text-decoration: none;
+    }
+    .vk-btn-link:active { transform: translateY(0); }
+
+    /* ---------- 进度条 ---------- */
+    .vk-progress {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5em;
+        vertical-align: -0.15em;
+    }
+    .vk-progress-track {
+        display: inline-block;
+        width: 7em;
+        height: 0.5em;
+        border-radius: 9999px;
+        background: var(--btn-regular-bg);
+        overflow: hidden;
+    }
+    .vk-progress-fill {
+        display: block;
+        height: 100%;
+        border-radius: inherit;
+        background: var(--primary);
+    }
+    .vk-progress-num {
+        font-size: 0.85em;
+        font-variant-numeric: tabular-nums;
+        opacity: 0.7;
+    }
+
+    /* ---------- 刮刮卡 ---------- */
+    .vk-scratch {
+        position: relative;
+        display: inline-block;
+        padding: 0 0.3em;
+        border-radius: 0.25rem;
+        cursor: pointer;
+        background: var(--codeblock-bg);
+        transition: background 0.25s ease;
+    }
+    .vk-scratch .vk-scratch-text {
+        /* 未揭开时与底色同色，选中也看不出内容 */
+        color: transparent;
+        transition: color 0.25s ease;
+    }
+    .vk-scratch.revealed,
+    .vk-scratch:focus-visible {
+        background: transparent;
+    }
+    .vk-scratch.revealed .vk-scratch-text,
+    .vk-scratch:focus-visible .vk-scratch-text {
+        color: inherit;
+    }
+    .vk-scratch:not(.revealed)::after {
+        content: "点击显示";
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.72em;
+        opacity: 0.5;
+        pointer-events: none;
+    }
+    .vk-scratch.revealed::after { content: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .custom-md .vk-btn-link,
+    .custom-md .vk-scratch,
+    .custom-md .vk-scratch .vk-scratch-text { transition: none; }
+    .custom-md .vk-btn-link:hover { transform: none; }
+}

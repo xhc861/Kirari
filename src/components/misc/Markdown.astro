@@ -42,3 +42,29 @@ document.addEventListener("click", function (e: MouseEvent) {
     }
 });
 </script>
+
+<script is:inline>
+(() => {
+  /* VLOOK 刮刮卡：点击或回车揭开，揭开后不再收起 */
+  function bind() {
+    for (const el of document.querySelectorAll(".vk-scratch:not([data-bound])")) {
+      el.dataset.bound = "1";
+      const reveal = () => el.classList.add("revealed");
+      el.addEventListener("click", reveal);
+      el.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          reveal();
+        }
+      });
+    }
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", bind, { once: true });
+  } else {
+    bind();
+  }
+  document.addEventListener("swup:page:view", bind);
+})();
+</script>
