@@ -54,13 +54,52 @@ function escapeHtml(s) {
  * 色号 → 内联样式。亮暗两套颜色通过 CSS 变量交给样式表切换，
  * 避免在 HTML 里写死只适配一种主题的颜色。
  */
-function colorStyle(codes, emphasis) {
-	const light = colorValue(codes, "light");
-	const dark = colorValue(codes, "dark");
-	const isGradient = codes.length > 1;
-	const parts = [`--vk-c:${light}`, `--vk-c-dark:${dark}`];
-	if (isGradient) parts.push("--vk-gradient:1");
-	return parts.join(";");
+function colorStyle(codes) {
+	return [
+		`--vk-c:${colorValue(codes, "light")}`,
+		`--vk-c-dark:${colorValue(codes, "dark")}`,
+	].join(";");
+}
+
+/**
+ * 着色用的包裹节点。
+ *
+ * 用自定义类型而不是复用 emphasis：后面的刮刮卡那一步会把「含 strong 子节点的
+ * emphasis」当成刮刮卡，写 `**粗体** _~Rd~_` 就会被误判。自定义类型不会被
+ * 任何 visit(tree, "emphasis") 命中，交给 mdast-util-to-hast 的兜底处理，
+ * 按 data.hName 渲染成 span。
+ */
+function colorNode(children, codes, solid) {
+	const className = ["vk-color"];
+	if (codes.length > 1) className.push("vk-gradient");
+	if (solid) className.push("vk-solid");
+	return {
+		type: "vlookColor",
+		data: { hName: "span", hProperties: { className, style: colorStyle(codes) } },
+		children,
+	};
+}
+
+/*
+ * 色号作用于「前面那段文字」，需要切出这段文字的范围。
+ * 从末尾往前取，遇到分隔符停下 —— 否则 `蓝色 _~Bu~_ ／ 绿色 _~Gn~_` 里
+ * 绿色那个色号会把「蓝色 ／ 绿色」整串都吃掉。
+ * 空格不算分隔符，这样「这段是红色」这种带空格的短语仍能整体着色。
+ */
+const SEPARATORS = "：:，,。；;！!？?、／/｜|（()）【】「」《》";
+const RUN_RE = new RegExp(`[^${SEPARATORS}]+$`);
+
+function splitTrailingRun(value) {
+	const trimmed = value.replace(/\s+$/, "");
+	if (!trimmed) return null;
+	const m = RUN_RE.exec(trimmed);
+	if (!m) return null;
+	let run = m[0];
+	const lead = /^\s+/.exec(run);
+	const before = value.slice(0, m.index) + (lead ? lead[0] : "");
+	if (lead) run = run.slice(lead[0].length);
+	if (!run) return null;
+	return { before, run };
 }
 
 export function remarkVLook() {
@@ -119,6 +158,13 @@ export function remarkVLook() {
 		});
 
 		/* ---------- 4. 色号 _~Rd~_ / _~RdGn!~_ ---------- */
+		/*
+		 * 色号是个「后置标记」：它给前面的内容着色，自己不显示。
+		 *
+		 * 原实现在原地留下一个空的 <span class="vk-color" style="--vk-c:…">，
+		 * 而样式是 .vk-color { color: var(--vk-c) } —— 空元素没有文字可染，
+		 * 于是所有着色全部失效。正确做法是把前面那段内容包进 span 里。
+		 */
 		visit(tree, "emphasis", (node, index, parent) => {
 			if (!parent || index === null) return;
 			// remark-gfm 的 singleTilde 会把 ~Rd~ 解析成 delete 节点
@@ -132,30 +178,81 @@ export function remarkVLook() {
 			const codes = splitCodes(m[1]);
 			if (codes.length === 0) return;
 			const solid = m[2] === "!";
-			const style = colorStyle(codes, solid);
 
-			// 独占一行 → 给整段/整个引用块着色，否则只给前面的内容着色
-			const sole = isSoleChild(parent, node);
-			if (sole) {
-				// 标记宿主：段落着色由父节点承担，这里留一个隐藏标记节点
-				parent.data = parent.data || {};
-				parent.data.hProperties = parent.data.hProperties || {};
-				const cls = ["vk-colored", solid ? "vk-solid" : "vk-outline"];
-				parent.data.hProperties.class = [
-					...(parent.data.hProperties.class
-						? String(parent.data.hProperties.class).split(" ")
-						: []),
-					...cls,
-				].join(" ");
-				parent.data.hProperties.style = style;
-				// 移除色号本身，它只是标记不该显示
-				parent.children.splice(index, 1);
+			// 独占一行的留给下一步按块处理，这里只管行内
+			if (isSoleChild(parent, node)) return;
+
+			const prev = parent.children[index - 1];
+
+			if (prev && prev.type === "text") {
+				const split = splitTrailingRun(prev.value);
+				if (split) {
+					const nodes = [];
+					if (split.before) nodes.push({ type: "text", value: split.before });
+					nodes.push(
+						colorNode([{ type: "text", value: split.run }], codes, solid),
+					);
+					parent.children.splice(index - 1, 2, ...nodes);
+					return index - 1 + nodes.length;
+				}
+			}
+
+			// 前面是行内代码、加粗之类的完整节点，整个包起来
+			if (prev && prev.type !== "text") {
+				parent.children.splice(index - 1, 2, colorNode([prev], codes, solid));
 				return index;
 			}
 
-			parent.children[index] = html(
-				`<span class="vk-color ${solid ? "vk-solid" : ""}" style="${style}"></span>`,
+			// 前面没有可着色的内容，标记本身不该显示，直接丢掉
+			parent.children.splice(index, 1);
+			return index;
+		});
+
+		/* ---------- 4b. 独占一行的色号：作用于整段 / 整个引用块 ---------- */
+		visit(tree, "paragraph", (node, index, parent) => {
+			if (!parent || index === null) return;
+			const kids = node.children.filter(
+				(c) => !(c.type === "text" && c.value.trim() === ""),
 			);
+			if (kids.length !== 1) return;
+			const em = kids[0];
+			if (em.type !== "emphasis") return;
+			const only = em.children.length === 1 ? em.children[0] : null;
+			if (!only || only.type !== "delete") return;
+
+			const m = COLOR_SEQ_RE.exec(toText(only.children).trim());
+			if (!m) return;
+			const codes = splitCodes(m[1]);
+			if (codes.length === 0) return;
+			const solid = m[2] === "!";
+
+			/*
+			 * 宿主的选择：色号自成一段时，它修饰的是所在的引用块，或紧邻的上一段。
+			 * 原来一律标在色号自己那个段落上，结果是渲染出一个空的带边框段落，
+			 * 而真正该着色的内容毫无变化。
+			 */
+			const host =
+				parent.type === "blockquote"
+					? parent
+					: index > 0
+						? parent.children[index - 1]
+						: null;
+
+			if (!host) return;
+
+			host.data = host.data || {};
+			host.data.hProperties = host.data.hProperties || {};
+			const prevClass = host.data.hProperties.className;
+			host.data.hProperties.className = [
+				...(Array.isArray(prevClass) ? prevClass : prevClass ? [prevClass] : []),
+				"vk-colored",
+				solid ? "vk-solid" : "vk-outline",
+			];
+			host.data.hProperties.style = colorStyle(codes);
+
+			// 色号那一段只是标记，不该出现在页面上
+			parent.children.splice(index, 1);
+			return index;
 		});
 
 		/* ---------- 5. 题注 *==题注==*（独占一行，自动编号） ---------- */

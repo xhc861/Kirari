@@ -177,7 +177,18 @@ export function rehypeVLookTable() {
 							const rs = Number(target.properties?.rowSpan ?? 1) || 1;
 							target.properties = target.properties || {};
 							target.properties.rowSpan = rs + 1;
+							const wasFirstColumn = col === 0;
 							row.children.splice(row.children.indexOf(cell), 1);
+							/*
+							 * 首列被合并掉之后，原本的第二列成了这一行的 :first-child。
+							 * Tailwind Typography 有一条 `td:first-child { padding-inline-start: 0 }`
+							 * ——本意是让首列与正文左边界对齐，这里却误伤了第二列，
+							 * 表现为该格内容比上一行同列的内容偏左。打个标记，样式里补回来。
+							 */
+							if (wasFirstColumn) {
+								const rest = cellsOf(row);
+								if (rest[0]) addClass(rest[0], "vk-cell-indent");
+							}
 						}
 					} else {
 						anchors.set(col, cell);

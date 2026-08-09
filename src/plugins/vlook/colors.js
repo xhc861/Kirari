@@ -60,6 +60,10 @@ export function splitCodes(seq) {
 
 /**
  * 由色号数组生成颜色值：单色直接返回，多色生成线性渐变。
+ *
+ * 注意多色时返回的是 linear-gradient(...)，不是颜色 —— 它只能用作 background，
+ * 塞给 color 属性是无效值。样式表里靠 .vk-gradient 类走 background-clip: text。
+ *
  * @param {string[]} codes
  * @param {"light"|"dark"} mode
  */

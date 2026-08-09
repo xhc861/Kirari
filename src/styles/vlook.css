@@ -12,8 +12,23 @@
     .vk-color {
         color: var(--vk-c);
     }
+
+    /*
+     * 渐变色号的 --vk-c 是 linear-gradient(...)，不是颜色值 ——
+     * color 会当它无效直接忽略。只能当背景画出来，再裁到文字形状上。
+     */
+    .vk-color.vk-gradient {
+        background-image: var(--vk-c);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+    }
+
+    /* 实心强调式：色值当底，文字反白。渐变时这里也要把裁剪还原回来 */
     .vk-color.vk-solid {
         background: var(--vk-c);
+        -webkit-background-clip: border-box;
+        background-clip: border-box;
         color: var(--card-bg);
         padding: 0.05em 0.35em;
         border-radius: 0.25rem;
@@ -68,8 +83,15 @@
     }
 
     /* ---------- 可折叠引用块 ---------- */
+    /*
+     * 底色不能用 --codeblock-bg：那个变量亮暗两套是同一个近黑值
+     * （为配合 github-dark 的代码高亮），可折叠块里装的是正文，
+     * 深色底配正文色就成了浅灰压黑底，看着发灰。
+     * 改用跟随主题的表面色，亮色模式是浅底深字，深色模式是深底浅字。
+     */
     .vk-collapse {
-        background: var(--codeblock-bg);
+        background: color-mix(in oklab, var(--primary) 6%, var(--card-bg));
+        border: 1px solid var(--line-divider);
         border-radius: 0.5rem;
         padding: 0.5rem 1rem;
         margin: 1rem 0;
@@ -168,6 +190,14 @@
 
 /* ---------- 表格增强 ---------- */
 .custom-md {
+    /*
+     * 纵向合并吃掉首列后，第二列的单元格成了这一行的 :first-child，
+     * 撞上 Typography 的 `td:first-child { padding-inline-start: 0 }`，
+     * 内容比上一行同列偏左。这里补回 Typography 给普通单元格的那个值。
+     * 选择器有两个类，优先级高于 `.prose :where(…)`（:where 不计权重）。
+     */
+    .vk-cell-indent { padding-inline-start: 0.571429em; }
+
     .vk-col-bold   { font-weight: 700; }
     .vk-col-italic { font-style: italic; }
     .vk-col-mark   { background: color-mix(in oklab, var(--primary) 10%, transparent); }
