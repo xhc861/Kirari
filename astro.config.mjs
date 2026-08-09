@@ -1,3 +1,5 @@
+import browserslist from "browserslist";
+import { browserslistToTargets } from "lightningcss";
 import { unified } from "@astrojs/markdown-remark";
 import sitemap from "@astrojs/sitemap";
 import svelte from "@astrojs/svelte";
@@ -9,6 +11,46 @@ import swup from "@swup/astro";
 import expressiveCode from "astro-expressive-code";
 import icon from "astro-icon";
 import { defineConfig } from "astro/config";
+import { transform as lightningTransform } from "lightningcss";
+
+/**
+ * 把最终产出的 CSS 降级到旧内核能认的语法。
+ *
+ * 为什么不用 Vite 的 css.transformer：@tailwindcss/vite 是在 Vite 的 CSS 管线
+ * **之后**产出样式的，css.lightningcss 的 targets 够不着它 —— 实测 Tailwind 的
+ * @media (width>=48rem) 原样保留，反而是我自己组件里的 min-width 被优化成了
+ * 区间语法。所以改在 generateBundle 阶段统一处理最终资产，结果确定。
+ *
+ * 这一步很关键：区间语法要 Chrome 104 / Safari 16.4 才支持，旧内核一旦不认，
+ * **所有响应式类会整体失效**，宽屏渲染成移动端布局。
+ */
+function downlevelCss(targets) {
+	return {
+		name: "kirari:downlevel-css",
+		apply: "build",
+		generateBundle(_options, bundle) {
+			for (const asset of Object.values(bundle)) {
+				if (asset.type !== "asset" || !asset.fileName.endsWith(".css")) continue;
+				const source =
+					typeof asset.source === "string"
+						? asset.source
+						: Buffer.from(asset.source).toString("utf8");
+				try {
+					const { code } = lightningTransform({
+						filename: asset.fileName,
+						code: Buffer.from(source),
+						targets,
+						minify: true,
+					});
+					asset.source = code.toString("utf8");
+				} catch (err) {
+					// 单个文件降级失败不该中断构建，保留原样并提示
+					this.warn(`降级 CSS 失败：${asset.fileName} — ${err.message}`);
+				}
+			}
+		},
+	};
+}
 import rehypeAutolinkHeadings from "rehype-autolink-headings";
 import rehypeComponents from "rehype-components"; /* Render the custom directive content */
 import rehypeKatex from "rehype-katex";
@@ -178,7 +220,16 @@ export default defineConfig({
 		}),
 	},
 	vite: {
-		plugins: [tailwindcss()],
+		plugins: [
+			tailwindcss(),
+			downlevelCss(
+				browserslistToTargets(
+					browserslist(
+						"Chrome >= 90, Safari >= 14, Firefox >= 90, Edge >= 90, iOS >= 14, Android >= 90",
+					),
+				),
+			),
+		],
 		build: {
 			rollupOptions: {
 				onwarn(warning, warn) {
