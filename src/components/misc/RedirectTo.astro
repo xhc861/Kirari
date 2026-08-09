@@ -11,6 +11,12 @@
  * 所以改成真实页面：meta refresh 打底，JS 用 replace 不留历史记录，
  * canonical 告诉搜索引擎正主是谁。代价是状态码 200 而非 301 ——
  * vercel.json 里另配了平台级 301，能命中时轮不到这个页面。
+ *
+ * 【样式必须自带作用域】本文件的 <style> 里一律不写裸的 body / html 选择器。
+ * Astro 会把小体积样式内联进**每个**页面，而 body 这类选择器加不上作用域类，
+ * 于是会打进全站。这里最初写了 `body { background: #1a1a1a }`（配深色偏好），
+ * 结果全站的 body 在浅色模式下也被涂黑 —— 与 styles/print-page.css 顶部记的
+ * 是同一个坑。所有观感都挂在 .redirect-page 上。
  */
 interface Props {
 	/** 目标地址，站内绝对路径 */
@@ -30,27 +36,33 @@ const { to, label } = Astro.props;
     <link rel="canonical" href={to} />
     <meta name="robots" content="noindex, follow" />
     <title>页面已移动</title>
-    <style>
-        body {
-            font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
-            display: grid;
-            place-items: center;
-            min-height: 100vh;
-            margin: 0;
-            color: #444;
-            background: #fff;
-        }
-        @media (prefers-color-scheme: dark) {
-            body { color: #ddd; background: #1a1a1a; }
-        }
-        a { color: #3080ff; }
-    </style>
 </head>
 <body>
-    <p>{label}正在跳转…… 如果没有自动跳转，请点 <a href={to}>这里</a>。</p>
+    <div class="redirect-page">
+        <p>{label}正在跳转…… 如果没有自动跳转，请点 <a href={to}>这里</a>。</p>
+    </div>
     <script is:inline define:vars={{ to }}>
         // replace 而不是 assign：别在历史记录里留下这个中转页，否则「后退」会弹回来
         location.replace(to);
     </script>
 </body>
 </html>
+
+<style>
+    /* 一切都挂在这个包裹元素上，不碰 body —— 原因见文件头的说明 */
+    .redirect-page {
+        font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+        display: grid;
+        place-items: center;
+        min-height: 100vh;
+        margin: 0;
+        padding: 1rem;
+        text-align: center;
+        color: #444;
+        background: #fff;
+    }
+    @media (prefers-color-scheme: dark) {
+        .redirect-page { color: #ddd; background: #1a1a1a; }
+    }
+    .redirect-page a { color: #3080ff; }
+</style>
