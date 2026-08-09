@@ -514,6 +514,20 @@ onDestroy(() => {
     cursor: pointer;
     display: grid;
     place-items: center;
+    -webkit-appearance: none;
+    appearance: none;
+    /*
+     * 按钮本身是个方形盒子，不设圆角的话 :focus-visible 的轮廓会沿着方形画，
+     * 看起来像唱片外面套了个方框。
+     */
+    border-radius: 50%;
+    outline-offset: 3px;
+  }
+  .disc-btn:focus-visible {
+    outline: 2px solid var(--primary);
+  }
+  .disc-btn:focus:not(:focus-visible) {
+    outline: none;
   }
 
   /* 进度环 */
@@ -620,22 +634,18 @@ onDestroy(() => {
 
   /* 展开的播放器 */
   .player-overlay {
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    right: 0 !important;
-    bottom: 0 !important;
-    width: 100vw !important;
-    height: 100vh !important;
-    z-index: 999998 !important;
-    background: rgba(0, 0, 0, 0.8) !important;
-    backdrop-filter: blur(20px) !important;
-    -webkit-backdrop-filter: blur(20px) !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    padding: 1rem !important;
-    animation: fadeIn 0.3s ease-out !important;
+    position: fixed;
+    inset: 0;
+    z-index: 999998;
+    /* 原来是 80% 黑 + 20px 模糊，对一个播放器来说太喧宾夺主 */
+    background: rgba(0, 0, 0, 0.42);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    animation: fadeIn 0.25s ease-out;
   }
   
   @keyframes fadeIn {
@@ -645,17 +655,25 @@ onDestroy(() => {
   
   .player-content {
     background: var(--card-bg);
-    border-radius: 2.5rem;
-    padding: 2rem;
-    max-width: 500px;
+    /* 设了背景就设配套前景色，深色模式下才不会继承成黑字 */
+    color: rgba(0, 0, 0, 0.85);
+    border: 1px solid var(--line-divider);
+    border-radius: 1.25rem;
+    padding: 1.75rem;
+    max-width: 380px;
     width: 100%;
     max-height: 90vh;
-    overflow-y: visible;
-    box-shadow: 0 25px 80px rgba(0, 0, 0, 0.5);
-    animation: slideUp 0.3s ease-out;
+    box-shadow:
+      0 18px 50px rgba(0, 0, 0, 0.18),
+      0 0 0 6px color-mix(in oklab, var(--primary) 10%, transparent);
+    animation: slideUp 0.28s cubic-bezier(0.22, 0.9, 0.3, 1);
     position: relative;
     display: flex;
     flex-direction: column;
+  }
+
+  :global(.dark) .player-content {
+    color: rgba(255, 255, 255, 0.88);
   }
 
   @keyframes slideUp {
@@ -700,31 +718,37 @@ onDestroy(() => {
   }
 
   .player-cover {
-    width: 100%;
-    aspect-ratio: 1;
-    border-radius: 2rem;
-    overflow: hidden;
-    margin-bottom: 1.5rem;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-    background: linear-gradient(135deg, var(--primary) 0%, oklch(0.65 0.14 calc(var(--hue) + 20)) 100%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    /* 与收起态保持同一套视觉语言：唱片而不是渐变方块 */
+    width: 11rem;
+    height: 11rem;
+    margin: 0 auto 1.5rem;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background:
+      repeating-radial-gradient(
+        circle at center,
+        color-mix(in oklab, var(--primary) 82%, black) 0 4px,
+        color-mix(in oklab, var(--primary) 70%, black) 4px 8px
+      );
+    box-shadow:
+      0 10px 30px rgba(0, 0, 0, 0.18),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.08);
   }
   
   .default-cover-large {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 5rem;
-    color: white;
+    width: 2.4rem;
+    height: 2.4rem;
+    border-radius: 50%;
+    background: var(--card-bg);
+    display: grid;
+    place-items: center;
+    color: color-mix(in oklab, var(--primary) 70%, black);
   }
   
   .default-cover-large svg {
-    width: 8rem;
-    height: 8rem;
+    width: 1.1rem;
+    height: 1.1rem;
     color: white;
     opacity: 0.9;
   }
