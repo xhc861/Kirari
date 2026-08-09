@@ -99,8 +99,14 @@ function writeJSON(key: string, value: unknown): void {
 /**
  * 某个章节内的模块顺序。
  *
- * 存档里认不出的 id 直接丢掉，存档里没有的模块补到末尾 ——
- * 这样增删模块都不会让老存档失效，也不会凭空少一块。
+ * 存档里认不出的 id 直接丢掉；存档里没有的模块，按它在默认排布里的位置**插回去**。
+ *
+ * 「插回去」而不是「追加到末尾」是有代价换来的教训：把微新闻挪到日常区第一位那次，
+ * 所有访问过展板的人存档里 daily 都是 [todo, countdown, oracle]，微新闻作为
+ * 没见过的 id 被追加到末尾 —— 改动对老用户完全不生效，越是常来的人越看不到。
+ *
+ * 按默认位置插入则两头都照顾到：新模块落在作者安排的位置，已有模块之间
+ * 用户自己调过的相对顺序原样保留。
  */
 export function orderedModules(section: SectionId): ModuleDef[] {
 	const defaults = MODULES.filter((m) => m.section === section);
@@ -108,17 +114,25 @@ export function orderedModules(section: SectionId): ModuleDef[] {
 	const savedIds = saved[section];
 	if (!Array.isArray(savedIds)) return defaults;
 
-	const byId = new Map(defaults.map((m) => [m.id, m]));
+	const missing = new Map(defaults.map((m) => [m.id, m]));
 	const out: ModuleDef[] = [];
 	for (const id of savedIds) {
-		const m = byId.get(id);
+		const m = missing.get(id);
 		if (m) {
 			out.push(m);
-			byId.delete(id);
+			missing.delete(id);
 		}
 	}
-	// 存档之后新增的模块
-	for (const m of defaults) if (byId.has(m.id)) out.push(m);
+
+	/*
+	 * defaults 是升序遍历的，所以先插的下标不会被后插的挤歪。
+	 * 末尾的 min() 兜住「默认位置比现有列表还靠后」的情况。
+	 */
+	defaults.forEach((m, defaultIndex) => {
+		if (!missing.has(m.id)) return;
+		out.splice(Math.min(defaultIndex, out.length), 0, m);
+	});
+
 	return out;
 }
 
