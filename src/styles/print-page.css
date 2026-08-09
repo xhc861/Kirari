@@ -1,0 +1,244 @@
+/*
+ * 打印页样式。
+ *
+ * 独立于站点样式：这里不引 Tailwind，也不复用 markdown.css —— 那份是为
+ * 屏幕阅读写的，带着主题色变量、悬停态、暗色模式等一整套依赖。
+ * 打印只需要一份朴素、黑白、可读的排版。
+ */
+
+:root {
+	--ink: #16181d;
+	--ink-soft: #4a5160;
+	--rule: #d8dce4;
+	--accent: #2b5fd9;
+	--code-bg: #f4f6fa;
+}
+
+* { box-sizing: border-box; }
+
+html {
+	font-size: 12pt;
+}
+
+body {
+	margin: 0;
+	padding: 2.2rem 2rem 3rem;
+	max-width: 46em;
+	margin-inline: auto;
+	background: #fff;
+	color: var(--ink);
+	font-family: "Source Han Serif SC", "Noto Serif CJK SC", "Songti SC",
+		"SimSun", Georgia, "Times New Roman", serif;
+	line-height: 1.75;
+	/* 打印时浏览器默认会剥掉背景色，代码块底色需要显式保留 */
+	-webkit-print-color-adjust: exact;
+	print-color-adjust: exact;
+}
+
+/* ---------- 文章头 ---------- */
+.doc-header {
+	margin-bottom: 2rem;
+	padding-bottom: 1rem;
+	border-bottom: 1.5px solid var(--rule);
+}
+
+.doc-title {
+	font-size: 1.9em;
+	font-weight: 700;
+	line-height: 1.3;
+	margin: 0 0 0.5rem;
+	text-wrap: balance;
+}
+
+.doc-meta {
+	font-size: 0.8em;
+	color: var(--ink-soft);
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.35rem 1rem;
+}
+
+.doc-summary {
+	margin-top: 1rem;
+	padding: 0.7rem 1rem;
+	border-left: 3px solid var(--accent);
+	background: #f7f9fd;
+	font-size: 0.9em;
+	color: var(--ink-soft);
+}
+
+/* ---------- 正文 ---------- */
+.doc-body h1,
+.doc-body h2,
+.doc-body h3,
+.doc-body h4 {
+	font-weight: 700;
+	line-height: 1.35;
+	margin: 1.8em 0 0.7em;
+	/* 标题不落在页尾 */
+	break-after: avoid;
+	page-break-after: avoid;
+}
+.doc-body h1 { font-size: 1.5em; }
+.doc-body h2 {
+	font-size: 1.28em;
+	padding-bottom: 0.25em;
+	border-bottom: 1px solid var(--rule);
+}
+.doc-body h3 { font-size: 1.12em; }
+.doc-body h4 { font-size: 1em; }
+
+.doc-body p { margin: 0.85em 0; }
+
+.doc-body a {
+	color: var(--accent);
+	text-decoration: none;
+	border-bottom: 0.5px solid currentColor;
+}
+/* 纸上链接点不了，把地址跟在后面 */
+.doc-body a[href^="http"]::after {
+	content: " (" attr(href) ")";
+	font-size: 0.78em;
+	color: var(--ink-soft);
+	border: none;
+	word-break: break-all;
+}
+
+.doc-body ul,
+.doc-body ol { padding-left: 1.6em; margin: 0.85em 0; }
+.doc-body li { margin: 0.3em 0; }
+
+.doc-body blockquote {
+	margin: 1.1em 0;
+	padding: 0.1em 0 0.1em 1em;
+	border-left: 3px solid var(--rule);
+	color: var(--ink-soft);
+}
+
+.doc-body img {
+	max-width: 100%;
+	height: auto;
+	display: block;
+	margin: 1.2em auto;
+	break-inside: avoid;
+	page-break-inside: avoid;
+}
+
+.doc-body table {
+	width: 100%;
+	border-collapse: collapse;
+	margin: 1.2em 0;
+	font-size: 0.9em;
+	break-inside: avoid;
+	page-break-inside: avoid;
+}
+.doc-body th,
+.doc-body td {
+	border: 1px solid var(--rule);
+	padding: 0.45em 0.6em;
+	text-align: left;
+}
+.doc-body th { background: var(--code-bg); font-weight: 600; }
+
+/* 代码用等宽，且不能被分页切断 */
+.doc-body code {
+	font-family: "JetBrains Mono Variable", ui-monospace, SFMono-Regular, Menlo,
+		Consolas, monospace;
+	font-size: 0.85em;
+	background: var(--code-bg);
+	padding: 0.12em 0.35em;
+	border-radius: 3px;
+}
+.doc-body pre {
+	background: var(--code-bg);
+	border: 1px solid var(--rule);
+	border-radius: 4px;
+	padding: 0.8em 1em;
+	overflow-x: auto;
+	font-size: 0.82em;
+	line-height: 1.55;
+	break-inside: avoid;
+	page-break-inside: avoid;
+}
+.doc-body pre code {
+	background: none;
+	padding: 0;
+	font-size: 1em;
+}
+/* expressive-code 的外框在纸上是多余的装饰 */
+.doc-body .expressive-code .frame {
+	box-shadow: none;
+	border: none;
+}
+
+.doc-body hr {
+	border: none;
+	border-top: 1px solid var(--rule);
+	margin: 2em 0;
+}
+
+/* 公式块避免被切断 */
+.doc-body .katex-display {
+	break-inside: avoid;
+	page-break-inside: avoid;
+	margin: 1.2em 0;
+}
+
+/* 锚点图标在纸上没有意义 */
+.doc-body .anchor,
+.doc-body .anchor-icon { display: none; }
+
+/* ---------- 页脚 ---------- */
+.doc-footer {
+	margin-top: 2.5rem;
+	padding-top: 1rem;
+	border-top: 1px solid var(--rule);
+	font-size: 0.78em;
+	color: var(--ink-soft);
+}
+
+/* ---------- 屏幕上的操作条（打印时隐藏） ---------- */
+.print-bar {
+	position: sticky;
+	top: 0;
+	z-index: 10;
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	margin: -2.2rem -2rem 1.5rem;
+	padding: 0.7rem 2rem;
+	background: #eef2f8;
+	border-bottom: 1px solid var(--rule);
+	font-family: system-ui, -apple-system, "Segoe UI", "PingFang SC",
+		"Microsoft YaHei", sans-serif;
+	font-size: 0.82rem;
+	color: var(--ink-soft);
+}
+
+.print-bar button {
+	font: inherit;
+	font-weight: 600;
+	padding: 0.35rem 0.9rem;
+	border: none;
+	border-radius: 0.35rem;
+	background: var(--accent);
+	color: #fff;
+	cursor: pointer;
+}
+.print-bar a {
+	color: var(--ink-soft);
+	margin-left: auto;
+}
+
+@media print {
+	.print-bar { display: none !important; }
+
+	body {
+		padding: 0;
+		max-width: none;
+	}
+
+	@page {
+		margin: 1.8cm 1.6cm;
+	}
+}
