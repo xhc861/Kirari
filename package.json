@@ -3,10 +3,10 @@
   "type": "module",
   "version": "1.0.0",
   "scripts": {
-    "dev": "astro dev",
-    "start": "astro dev",
+    "dev": "node scripts/clean-content-cache.mjs && astro dev",
+    "start": "node scripts/clean-content-cache.mjs && astro dev",
     "check": "astro check",
-    "build": "astro build && pagefind --site dist",
+    "build": "node scripts/clean-content-cache.mjs && astro build && pagefind --site dist",
     "preview": "astro preview",
     "astro": "astro",
     "type-check": "tsc --noEmit --isolatedDeclarations",
