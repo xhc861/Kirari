@@ -67,7 +67,7 @@ Tailwind v4 下，样式入口为 `src/styles/global.css`，Tailwind 本体与�
 ```bash
 git checkout content              # 文章只在这个分支
 pnpm new-post 我的新文章           # 生成 src/content/posts/我的新文章.md
-# ……写正文，记得填 frontmatter 的 summary（文章顶部的「太长不看」）
+# ……写正文，记得填 frontmatter 的 summary（文章顶部的 TL;DR）
 
 pnpm build                        # 本地验证：能构建、渲染无误
 git add src/content/posts/
