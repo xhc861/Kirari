@@ -21,7 +21,7 @@ export function getPostUrlBySlug(slug: string): string {
  * 搜索引擎索引、也进不了 sitemap。归档页的交互式筛选仍然保留。
  */
 export function getTagUrl(tag: string): string {
-	if (!tag) return url("/archive/");
+	if (!tag) return url("/works/posts/");
 	return url(`/tags/${encodeURIComponent(tag.trim())}/`);
 }
 
@@ -32,7 +32,7 @@ export function getCategoryUrl(category: string | null): string {
 		category.trim() === "" ||
 		category.trim().toLowerCase() === i18n(I18nKey.uncategorized).toLowerCase()
 	)
-		return url("/archive/?uncategorized=true");
+		return url("/works/posts/?uncategorized=true");
 	return url(`/categories/${encodeURIComponent(category.trim())}/`);
 }
 

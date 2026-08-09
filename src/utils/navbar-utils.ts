@@ -30,7 +30,12 @@ export type NavLinkEntry = {
 	external: boolean;
 };
 
-/** 展开 navBarConfig（预设项会被解析成实际链接），供设置面板生成开关 */
+/**
+ * 展开 navBarConfig（预设项会被解析成实际链接），供设置面板生成开关。
+ *
+ * 只产出顶级项：有下拉的项（如「作品集」）用一个开关控制整个下拉，
+ * 不给二级项单独开关 —— 父级藏起来时子项本来就无从触达。
+ */
 export function getNavLinkEntries(): NavLinkEntry[] {
 	return navBarConfig.links
 		.map((item): NavBarLink => {
@@ -43,3 +48,15 @@ export function getNavLinkEntries(): NavLinkEntry[] {
 			external: Boolean(l.external),
 		}));
 }
+
+/**
+ * 老设置的键名回落。
+ *
+ * 导航项改路由时键会跟着变（/archive/ → works、/gallery/ → dashboard），
+ * 已经存在 localStorage 里的旧设置会读不到，表现为「关掉的项自己又出现了」。
+ * 这里集中记录改名历史，Navbar 与 NavMenuPanel 共用同一份。
+ */
+export const NAV_KEY_FALLBACKS: Record<string, string> = {
+	works: "archive",
+	dashboard: "gallery",
+};

@@ -1,0 +1,131 @@
+---
+/**
+ * 谱曲列表。
+ *
+ * 一首曲子的关键信息是编制、时长和能不能马上听到，所以列表直接把这些摆出来，
+ * 不做成只有标题的清单 —— 否则还得逐个点进去才知道是什么。
+ */
+import MainGridLayout from "@layouts/MainGridLayout.astro";
+import { Icon } from "astro-icon/components";
+import { getSortedScores } from "@utils/content-utils";
+import { formatDateToYYYYMMDD } from "@utils/date-utils";
+import { url } from "@utils/url-utils";
+
+const scores = await getSortedScores();
+---
+
+<MainGridLayout title="谱曲" description="原创与改编的曲子">
+    <div class="card-base px-6 md:px-9 py-6 mb-4 onload-animation">
+        <h1 class="text-2xl md:text-3xl font-bold text-90 mb-2">谱曲</h1>
+        <p class="text-75 text-sm">
+            {scores.length > 0
+                ? `目前 ${scores.length} 首。`
+                : "还没有作品，写好第一首之后会出现在这里。"}
+        </p>
+    </div>
+
+    {scores.length > 0 && (
+        <div class="card-base px-4 md:px-6 py-4 onload-animation">
+            <ul class="score-list">
+                {scores.map((s) => (
+                    <li>
+                        <a href={url(`/works/scores/${s.id}/`)} class="score-item">
+                            <div class="score-main">
+                                <span class="score-title">{s.data.title}</span>
+                                {s.data.description && (
+                                    <span class="score-desc">{s.data.description}</span>
+                                )}
+                            </div>
+                            <div class="score-meta">
+                                {s.data.instrument && <span class="score-tag">{s.data.instrument}</span>}
+                                {s.data.duration && <span class="score-dur">{s.data.duration}</span>}
+                                {s.data.audio && (
+                                    <Icon name="material-symbols:play-circle-outline-rounded"
+                                          class="text-[1.1rem] text-[var(--primary)]" title="有试听" />
+                                )}
+                                {s.data.sheet && (
+                                    <Icon name="material-symbols:description-outline-rounded"
+                                          class="text-[1.05rem] text-75" title="有乐谱" />
+                                )}
+                                <span class="score-date">{formatDateToYYYYMMDD(s.data.published)}</span>
+                            </div>
+                        </a>
+                    </li>
+                ))}
+            </ul>
+        </div>
+    )}
+</MainGridLayout>
+
+<style>
+    .score-list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .score-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 0.7rem 0.75rem;
+        border-radius: 0.6rem;
+        transition: background 0.15s ease;
+        min-width: 0;
+    }
+    .score-item:hover {
+        background: var(--btn-plain-bg-hover);
+    }
+
+    .score-main {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+    }
+    .score-title {
+        font-weight: 600;
+        color: var(--tw-prose-headings, inherit);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .score-desc {
+        font-size: 0.8rem;
+        opacity: 0.6;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .score-meta {
+        display: flex;
+        align-items: center;
+        gap: 0.55rem;
+        flex-shrink: 0;
+        font-size: 0.8rem;
+    }
+    .score-tag {
+        padding: 0.1rem 0.5rem;
+        border-radius: 9999px;
+        background: var(--btn-regular-bg);
+        color: var(--btn-content);
+        white-space: nowrap;
+    }
+    .score-dur, .score-date {
+        font-variant-numeric: tabular-nums;
+        opacity: 0.55;
+    }
+
+    /* 窄屏把元信息收起来，只留标题与日期，免得挤成两行 */
+    @media (max-width: 640px) {
+        .score-tag, .score-dur { display: none; }
+        .score-desc { display: none; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .score-item { transition: none; }
+    }
+</style>

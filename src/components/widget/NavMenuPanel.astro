@@ -11,28 +11,51 @@ const links = Astro.props.links;
 ---
 <div id="nav-menu-panel" class:list={["float-panel float-panel-closed absolute transition-all fixed right-4 px-2 py-2"]}>
     {links.map((link) => (
-        <a href={link.external ? link.url : url(link.url)} class="group flex justify-between items-center py-2 pl-3 pr-1 rounded-lg gap-8
-            hover:bg-[var(--btn-plain-bg-hover)] active:bg-[var(--btn-plain-bg-active)] transition navbar-link-mobile
-        "
-           target={link.external ? "_blank" : null}
-           data-link-url={link.url}
-        >
-            <div class="transition text-black/75 dark:text-white/75 font-bold group-hover:text-[var(--primary)] group-active:text-[var(--primary)]">
-                {link.name}
-            </div>
-            {!link.external && <Icon name="material-symbols:chevron-right-rounded"
-                  class="transition text-[1.25rem] text-[var(--primary)]"
+        <div class="navbar-link-mobile" data-link-url={link.url}>
+            <a href={link.external ? link.url : url(link.url)} class="group flex justify-between items-center py-2 pl-3 pr-1 rounded-lg gap-8
+                hover:bg-[var(--btn-plain-bg-hover)] active:bg-[var(--btn-plain-bg-active)] transition
+            "
+               target={link.external ? "_blank" : null}
             >
-            </Icon>}
-            {link.external && <Icon name="fa6-solid:arrow-up-right-from-square"
-                  class="transition text-[0.75rem] text-black/25 dark:text-white/25 -translate-x-1"
-            >
-            </Icon>}
-        </a>
+                <div class="transition text-black/75 dark:text-white/75 font-bold group-hover:text-[var(--primary)] group-active:text-[var(--primary)]">
+                    {link.name}
+                </div>
+                {!link.external && <Icon name="material-symbols:chevron-right-rounded"
+                      class="transition text-[1.25rem] text-[var(--primary)]"
+                >
+                </Icon>}
+                {link.external && <Icon name="fa6-solid:arrow-up-right-from-square"
+                      class="transition text-[0.75rem] text-black/25 dark:text-white/25 -translate-x-1"
+                >
+                </Icon>}
+            </a>
+
+            {/*
+              移动端不做悬停下拉，二级项直接缩进平铺列出来 —— 触屏上多一层
+              展开手势只会更难点中，而这里总共就两项。
+            */}
+            {link.children?.map((child) => (
+                <a href={child.external ? child.url : url(child.url)} class="group flex justify-between items-center py-1.5 pl-7 pr-1 rounded-lg gap-8
+                    hover:bg-[var(--btn-plain-bg-hover)] active:bg-[var(--btn-plain-bg-active)] transition
+                "
+                   target={child.external ? "_blank" : null}
+                >
+                    <div class="transition text-black/60 dark:text-white/60 text-sm font-medium group-hover:text-[var(--primary)] group-active:text-[var(--primary)]">
+                        {child.name}
+                    </div>
+                    <Icon name="material-symbols:chevron-right-rounded"
+                          class="transition text-[1rem] text-[var(--primary)]/60"
+                    >
+                    </Icon>
+                </a>
+            ))}
+        </div>
     ))}
 </div>
 
 <script>
+import { NAV_KEY_FALLBACKS } from '../../utils/navbar-utils';
+
 function applyNavbarSettingsMobile() {
     const saved = localStorage.getItem('effectsSettings');
     if (saved) {
@@ -42,16 +65,21 @@ function applyNavbarSettingsMobile() {
                 const links = document.querySelectorAll('.navbar-link-mobile');
                 links.forEach(link => {
 const raw = link.getAttribute('data-link-url') || '';
-// 只处理内部链接，外部链接（如 GitHub）不受设置控制
-if (raw && !link.hasAttribute('target')) {
+/*
+ * 只处理内部链接，外部链接（如 GitHub）不受设置控制。
+ * 判断依据从「元素上有没有 target」改成看 URL 本身 —— 现在带下拉的项
+ * 外层是个 div，target 挂在里面的 <a> 上，靠属性判断会漏。
+ */
+if (raw && !/^https?:\/\//.test(raw)) {
     /*
      * 用链接自带的 data-link-url 派生键来匹配，而不是拿 URL 猜关键词。
      * 之前是一串 if (url.includes('archive')) 的硬编码，每加一个导航项
      * 就要同步改这里，漏一处就失效 —— 加「统计」时就漏过。
      */
     const key = raw.replace(/^\/+|\/+$/g, '').split('/')[0] || 'home';
+    const fallbackKey = NAV_KEY_FALLBACKS[key];
     const visible = settings.navbarLinks[key]
-        ?? (key === 'dashboard' ? settings.navbarLinks.gallery : undefined)
+        ?? (fallbackKey ? settings.navbarLinks[fallbackKey] : undefined)
         ?? true;
     (link as HTMLElement).style.display = visible ? '' : 'none';
 }
