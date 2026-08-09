@@ -1,17 +1,19 @@
 <script lang="ts">
-import { onDestroy, onMount } from "svelte";
-import { fetchLunarToday, type LunarToday } from "./lunar";
-
 /**
  * 展板开屏区。
  *
  * 不是一张卡片 —— 卡片会给它一个边界，而这里要的正是没有边界：问候和时钟
- * 直接铺在页面顶上，靠字号差和一条细线撑起层次。展板往下全是密集的小字，
- * 开头需要一口气把人接住。
+ * 直接铺在页面顶上，靠字号差和引导点线撑起层次。
+ *
+ * 问候与时钟之间那串点，是目录页把标题连到页码的老办法。它把左右两端绑在
+ * 同一条基线上，比留一片空白更像「一页纸的抬头」，也顺手把宽屏下被拉开的
+ * 两端重新拴住。
  *
  * 农历原先长在日历模块里，那个模块又把「2026 年 8 月 9 日 · 星期日」重复了
  * 一遍。现在公历归这里、农历也归这里，日历模块整个撤掉。
  */
+import { onDestroy, onMount } from "svelte";
+import { fetchLunarToday, type LunarToday } from "./lunar";
 
 let now = new Date();
 let timer: ReturnType<typeof setInterval> | null = null;
@@ -61,6 +63,7 @@ $: lunarText = lunar
 $: dayProgress =
 	((now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds()) / 86400) *
 	100;
+$: dayPercentText = `今天过了 ${Math.round(dayProgress)}%`;
 </script>
 
 <header class="dash-header" data-mood={greeting.mood}>
@@ -68,19 +71,23 @@ $: dayProgress =
 
   <div class="row">
     <h1 class="greet">{greeting.text}</h1>
+    <span class="leader" aria-hidden="true"></span>
     <div class="clock" aria-label="当前时间">
       <span class="unit">{hh}</span><span class="sep">:</span><span class="unit">{mm}</span><span class="sep sec-sep">:</span><span class="unit sec">{ss}</span>
     </div>
   </div>
 
   <div class="row meta">
-    <div class="lunar" class:pending={!lunarText}>{lunarText}</div>
+    <div class="lunar">{lunarText}</div>
+    <span class="leader thin" aria-hidden="true"></span>
     <div class="date">{dateText}</div>
   </div>
 
+  <!-- 分隔线兼今日进度：虚线是走过的刻度，实线是已经过掉的部分 -->
   <div
     class="dayline"
     role="progressbar"
+    title={dayPercentText}
     aria-label="今天已过去"
     aria-valuemin="0"
     aria-valuemax="100"
@@ -93,7 +100,7 @@ $: dayProgress =
 <style>
   .dash-header {
     position: relative;
-    padding: 0.5rem 0 0;
+    padding: 0.75rem 0 0;
   }
 
   /*
@@ -106,9 +113,9 @@ $: dayProgress =
     height: 16rem;
     pointer-events: none;
     z-index: -1;
-    opacity: 0.55;
+    opacity: 0.42;
     background: radial-gradient(
-      60% 100% at 78% 0%,
+      58% 100% at 80% 0%,
       var(--mood-glow, oklch(0.75 0.14 var(--hue))) 0%,
       transparent 70%
     );
@@ -121,12 +128,33 @@ $: dayProgress =
   .row {
     display: flex;
     align-items: baseline;
-    justify-content: space-between;
-    gap: 1rem;
-    flex-wrap: wrap;
+    gap: 0.9rem;
+  }
+
+  /* 目录页那串把标题连到页码的点 */
+  .leader {
+    flex: 1;
+    min-width: 1.5rem;
+    height: 1px;
+    align-self: flex-end;
+    margin-bottom: 0.55rem;
+    background-image: repeating-linear-gradient(
+      90deg,
+      color-mix(in oklab, var(--primary) 42%, transparent) 0 2px,
+      transparent 2px 8px
+    );
+  }
+  .leader.thin {
+    margin-bottom: 0.32rem;
+    background-image: repeating-linear-gradient(
+      90deg,
+      color-mix(in oklab, currentColor 22%, transparent) 0 1px,
+      transparent 1px 6px
+    );
   }
 
   .greet {
+    flex-shrink: 0;
     font-size: clamp(2rem, 5.5vw, 3.25rem);
     font-weight: 700;
     line-height: 1.05;
@@ -136,6 +164,7 @@ $: dayProgress =
   }
 
   .clock {
+    flex-shrink: 0;
     display: flex;
     align-items: baseline;
     font-family: "JetBrains Mono Variable", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -163,39 +192,45 @@ $: dayProgress =
   }
 
   .meta {
-    margin-top: 0.6rem;
-    font-size: 0.9rem;
+    margin-top: 0.55rem;
+    font-size: 0.88rem;
   }
 
   .lunar {
+    flex-shrink: 0;
     font-weight: 500;
-    color: rgba(0, 0, 0, 0.62);
+    letter-spacing: 0.03em;
+    color: rgba(0, 0, 0, 0.6);
+    /* 农历取不到就整行留空，不写「加载失败」——公历本来就够用了 */
+    min-height: 1.3em;
   }
-  :global(.dark) .lunar { color: rgba(255, 255, 255, 0.6); }
-  /* 农历取不到就整行留空，不写「加载失败」——公历本来就够用了 */
-  .lunar.pending { min-height: 1.3em; }
+  :global(.dark) .lunar { color: rgba(255, 255, 255, 0.58); }
 
   .date {
-    color: rgba(0, 0, 0, 0.42);
+    flex-shrink: 0;
+    color: rgba(0, 0, 0, 0.4);
     font-variant-numeric: tabular-nums;
   }
-  :global(.dark) .date { color: rgba(255, 255, 255, 0.42); }
+  :global(.dark) .date { color: rgba(255, 255, 255, 0.4); }
 
   /* 开屏区与正文之间的分隔线，同时是今天的进度 */
   .dayline {
-    margin-top: 1rem;
-    height: 2px;
-    border-radius: 2px;
-    background: var(--line-divider);
-    overflow: hidden;
+    margin-top: 1.1rem;
+    height: 3px;
+    /* 未走完的部分是刻度虚线，走过的是实心 —— 一条线说两件事 */
+    background-image: repeating-linear-gradient(
+      90deg,
+      var(--line-divider) 0 4px,
+      transparent 4px 9px
+    );
   }
   .dayline-fill {
     height: 100%;
-    border-radius: 2px;
+    border-radius: 3px;
     background: linear-gradient(
       90deg,
-      transparent 0%,
-      color-mix(in oklab, var(--primary) 55%, transparent) 100%
+      color-mix(in oklab, var(--primary) 22%, transparent) 0%,
+      color-mix(in oklab, var(--primary) 70%, transparent) 100%
     );
     transition: width 1s linear;
   }
@@ -206,7 +241,9 @@ $: dayProgress =
   }
 
   @media (max-width: 640px) {
-    .row { gap: 0.35rem; }
-    .meta { font-size: 0.8rem; }
+    /* 窄屏放不下引导线，收掉，两端各自靠边 */
+    .row { flex-wrap: wrap; gap: 0.35rem 0.6rem; justify-content: space-between; }
+    .leader { display: none; }
+    .meta { font-size: 0.78rem; }
   }
 </style>

@@ -300,11 +300,12 @@ $: if (loaded) {
     margin-bottom: 0.9rem;
   }
   .total-n {
-    font-size: 2.5rem;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 2.8rem;
     font-weight: 700;
     line-height: 1;
-    letter-spacing: -0.03em;
-    color: var(--primary);
+    letter-spacing: -0.02em;
+    color: var(--sec-tint, var(--primary));
     font-variant-numeric: tabular-nums;
   }
   .total-k {
@@ -382,7 +383,7 @@ $: if (loaded) {
 
   .total-cell {
     font-weight: 700;
-    color: var(--primary);
+    color: var(--sec-tint, var(--primary));
   }
 
   .subtotal-row td {
