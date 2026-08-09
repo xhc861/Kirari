@@ -1,7 +1,36 @@
 /* This is a script to create a new post markdown file with front-matter */
 
+import { execSync } from "node:child_process"
 import fs from "fs"
 import path from "path"
+
+/*
+ * 文章只属于 content 分支 —— main 是给别人 fork 用的干净模板，
+ * 里面的 src/content/posts 应当永远只有 .gitkeep。
+ * 在 main 上建文章是个容易犯的错（我自己就犯过），这里直接拦下。
+ */
+function currentBranch() {
+  try {
+    return execSync("git rev-parse --abbrev-ref HEAD", { stdio: ["ignore", "pipe", "ignore"] })
+      .toString()
+      .trim()
+  } catch {
+    return null // 不在 git 仓库里就不管
+  }
+}
+
+const branch = currentBranch()
+if (branch === "main") {
+  console.error(`当前在 main 分支，文章不应该建在这里。
+
+main 是不含文章的干净模板，文章只写在 content 分支：
+
+    git checkout content
+    pnpm new-post ${process.argv[2] ?? "<文件名>"}
+
+详见 README 的「分支与发布流程」。`)
+  process.exit(1)
+}
 
 function getDate() {
   const today = new Date()
