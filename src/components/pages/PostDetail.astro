@@ -22,6 +22,7 @@ import PostMetadata from "../PostMeta.astro";
 import CommentCount from "../CommentCount.astro";
 import PostSummary from "../PostSummary.astro";
 import ReadingCompanion from "../ReadingCompanion.astro";
+import SubscribeCard from "../SubscribeCard.astro";
 import ReadingProgress from "../ReadingProgress.astro";
 import RelatedPosts from "../RelatedPosts.astro";
 import SeriesNav from "../SeriesNav.astro";
@@ -183,6 +184,9 @@ const jsonLd = {
 
     <!-- 读完提示 + 目录跟随 -->
     <ReadingCompanion />
+
+    <!-- 订阅引导：读完一篇正是最可能想订阅的时候 -->
+    <SubscribeCard class="mb-4" />
 
     <!-- 相关文章：按标签重合度与分类挑选 -->
     <RelatedPosts posts={relatedPosts} />

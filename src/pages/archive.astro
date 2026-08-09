@@ -4,6 +4,7 @@ import MicroNewsAnnouncement from "@components/MicroNewsAnnouncement.svelte";
 import I18nKey from "@i18n/i18nKey";
 import { i18n } from "@i18n/translation";
 import MainGridLayout from "@layouts/MainGridLayout.astro";
+import SubscribeCard from "@components/SubscribeCard.astro";
 import { getSortedPostsList } from "../utils/content-utils";
 
 const sortedPostsList = await getSortedPostsList();
@@ -26,5 +27,7 @@ const postsForArchive = sortedPostsList.map((post) => ({
     <!-- @ts-ignore -->
     <MicroNewsAnnouncement client:load />
     <ArchivePanel tags={[]} categories={[]} sortedPosts={postsForArchive} client:only="svelte"></ArchivePanel>
+
+    <SubscribeCard class="mt-4 onload-animation" />
 </MainGridLayout>
 
