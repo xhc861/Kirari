@@ -1,0 +1,61 @@
+#!/bin/sh
+#
+# 拦住「文章被推到 main」。
+#
+# main 是给别人 fork 用的干净模板，src/content/posts/ 应当永远只有 .gitkeep。
+# scripts/new-post.js 拦的是「在 main 上建文章」，但拦不住这些情况：
+#
+#   - 在 content 上写好文章，手滑 git push origin content:main
+#   - 从别处 cherry-pick 时把文章一起带到了 main
+#   - 早先误提交的文章一直躺在 main 的历史里，某次推送才连带上去
+#
+# 所以这里不看「你人在哪个分支」，只看「即将落到远端 main 的那棵树里有没有文章」。
+# 不管文章是怎么进去的，都拦得住。
+#
+# 安装：git config core.hooksPath scripts/hooks
+#       （pnpm install 会通过 package.json 的 prepare 脚本自动设置）
+#
+# 确实要推带文章的 main（基本不会发生）：git push --no-verify
+
+# 40 个 0，Git 用它表示「这个 ref 不存在」（即删除分支）
+ZERO="0000000000000000000000000000000000000000"
+
+status=0
+
+# stdin 每行是：<本地 ref> <本地 oid> <远端 ref> <远端 oid>
+while read -r local_ref local_oid remote_ref remote_oid; do
+	# 只管推到 main 的，推 content 不受影响
+	[ "$remote_ref" = "refs/heads/main" ] || continue
+
+	# 删除分支没有树可查，跳过
+	[ "$local_oid" = "$ZERO" ] && continue
+
+	posts=$(git ls-tree -r --name-only "$local_oid" -- src/content/posts/ 2>/dev/null |
+		grep -v '^src/content/posts/\.gitkeep$')
+
+	[ -z "$posts" ] && continue
+
+	status=1
+	echo "" >&2
+	echo "推送被拦下：这次推到 main 的内容里有文章。" >&2
+	echo "" >&2
+	echo "  本地 ref：$local_ref" >&2
+	echo "$posts" | sed 's/^/    /' >&2
+	echo "" >&2
+	echo "main 是不含文章的干净模板，文章只属于 content 分支。" >&2
+	echo "" >&2
+	echo "如果是推错了分支，改推 content：" >&2
+	echo "" >&2
+	echo "    git push origin content" >&2
+	echo "" >&2
+	echo "如果文章确实被提交进了 main，先把它从 main 移除：" >&2
+	echo "" >&2
+	echo "    git checkout main" >&2
+	echo "    git rm src/content/posts/<文件名>" >&2
+	echo "    git commit -m \"chore: 从 main 移除文章\"" >&2
+	echo "" >&2
+	echo "详见 README 的「分支与发布流程」。" >&2
+	echo "" >&2
+done
+
+exit $status

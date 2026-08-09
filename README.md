@@ -52,6 +52,16 @@ Tailwind v4 下，样式入口为 `src/styles/global.css`，Tailwind 本体与�
 2. **代码改动先在 `main` 做，再 cherry-pick 到 `content`**；不要用 merge ——
    merge 会把 main 上「清空文章」那个提交带过去，把 `content` 的文章删掉。
 
+这两条都有脚本兜底，不必全靠记性：
+
+- `pnpm new-post` 在 `main` 上执行会直接报错；
+- `scripts/hooks/pre-push` 会检查**即将落到远端 `main` 的那棵树**里有没有文章，
+  有就中止推送。它不看你人在哪个分支，所以 `git push origin content:main`
+  这种手滑也拦得住。
+
+钩子随 `pnpm install` 自动生效（`prepare` 脚本会设 `core.hooksPath`），
+手动启用是 `git config core.hooksPath scripts/hooks`。
+
 ### 发布一篇新文章
 
 ```bash

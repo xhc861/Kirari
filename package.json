@@ -14,6 +14,7 @@
     "format": "biome format --write ./src",
     "lint": "biome check --write ./src",
     "preinstall": "npx only-allow pnpm",
+    "prepare": "git config core.hooksPath scripts/hooks || exit 0",
     "check-friends": "node scripts/check-friends.mjs"
   },
   "dependencies": {
