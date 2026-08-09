@@ -333,7 +333,7 @@ onDestroy(() => {
     height: 0.5rem;
     margin-top: 0.4rem;
     border-radius: 50%;
-    background: var(--pri, var(--primary));
+    background: var(--pri, var(--sec-tint, var(--primary)));
   }
 
   /*
@@ -386,8 +386,8 @@ onDestroy(() => {
     font-weight: 600;
     padding: 0.05rem 0.4rem;
     border-radius: 0.25rem;
-    color: var(--pri, var(--primary));
-    background: color-mix(in oklab, var(--pri, var(--primary)) 14%, transparent);
+    color: var(--pri, var(--sec-tint, var(--primary)));
+    background: color-mix(in oklab, var(--pri, var(--sec-tint, var(--primary))) 14%, transparent);
   }
 
   .more {
@@ -396,7 +396,7 @@ onDestroy(() => {
     border: none;
     background: none;
     font-size: 0.8rem;
-    color: var(--primary);
+    color: var(--sec-tint, var(--primary));
     cursor: pointer;
     opacity: 0.85;
     transition: opacity 0.15s ease;

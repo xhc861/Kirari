@@ -289,8 +289,10 @@ onDestroy(() => observer?.disconnect());
   {#each SECTIONS as s, si (s.id)}
     {@const list = visibleBySection[s.id] ?? []}
     {#if list.length}
-      <section class="chapter" id={`chapter-${s.id}`}>
+      <section class="chapter" id={`chapter-${s.id}`} data-sec={s.id}>
         <div class="chapter-head">
+          <!-- 压在标题背后的巨大编号：翻手账时先看到的就是这个页码 -->
+          <span class="chapter-no" aria-hidden="true">{String(si + 1).padStart(2, "0")}</span>
           <h2 class="chapter-title">{s.name}</h2>
           <span class="chapter-hint">{s.hint}</span>
           <span class="chapter-rule" aria-hidden="true"></span>
@@ -354,12 +356,40 @@ onDestroy(() => observer?.disconnect());
 </div>
 
 <style>
+  /*
+   * 展板的底子是一页纸，不是一块面板。
+   *
+   * 每个章节自带一个色相（--sec-hue），从站点主题色偏移出来 ——
+   * 书脊、编号、点线、悬停底色全部取自它，所以滚到哪一段，不看标题也认得出。
+   */
   .dashboard {
+    position: relative;
     width: 100%;
     max-width: 100%;
     display: flex;
     flex-direction: column;
-    gap: 1.5rem;
+    gap: 1.75rem;
+    --grid-line: rgba(0, 0, 0, 0.05);
+  }
+  :global(.dark) .dashboard { --grid-line: rgba(255, 255, 255, 0.055); }
+
+  /*
+   * 方格纸。顶上最清楚，往下淡到没有 ——
+   * 整页都铺就成了坐标纸，只在开头留一点，「这是一页本子」的意思就够了。
+   */
+  .dashboard::before {
+    content: "";
+    position: absolute;
+    inset: -2.5rem -2rem auto;
+    height: 34rem;
+    z-index: -1;
+    pointer-events: none;
+    background-image:
+      linear-gradient(var(--grid-line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+    background-size: 26px 26px;
+    -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 18%, transparent 100%);
+    mask-image: linear-gradient(180deg, #000 0%, #000 18%, transparent 100%);
   }
 
   /* ---------- 章节导航 ---------- */
@@ -372,33 +402,47 @@ onDestroy(() => observer?.disconnect());
     align-items: center;
     gap: 0.75rem;
     flex-wrap: wrap;
-    padding: 0.35rem 0.5rem;
-    margin: 0 -0.5rem;
-    border-radius: 9999px;
-    background: color-mix(in oklab, var(--page-bg, var(--card-bg)) 86%, transparent);
+    padding: 0.3rem 0.55rem;
+    margin: 0 -0.55rem;
+    border-radius: 0.7rem;
+    background: color-mix(in oklab, var(--page-bg, var(--card-bg)) 88%, transparent);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
   }
 
-  .chapter-links {
-    display: flex;
-    gap: 0.15rem;
-  }
+  .chapter-links { display: flex; gap: 0.1rem; }
 
   .chapter-link {
-    padding: 0.25rem 0.75rem;
+    position: relative;
+    padding: 0.25rem 0.7rem;
     border: none;
-    border-radius: 9999px;
     background: transparent;
-    color: rgba(0, 0, 0, 0.45);
+    color: rgba(0, 0, 0, 0.42);
     font-size: 0.85rem;
     font-weight: 600;
+    letter-spacing: 0.04em;
     cursor: pointer;
-    transition: background 0.18s ease, color 0.18s ease;
+    transition: color 0.18s ease;
   }
-  :global(.dark) .chapter-link { color: rgba(255, 255, 255, 0.45); }
-  .chapter-link:hover { background: var(--btn-plain-bg-hover); }
+  :global(.dark) .chapter-link { color: rgba(255, 255, 255, 0.42); }
+  .chapter-link:hover { color: var(--primary); }
+
+  /* 当前章节用一条短下划线标出，不用胶囊底色 —— 纸上不该有按钮 */
+  .chapter-link::after {
+    content: "";
+    position: absolute;
+    left: 0.7rem;
+    right: 0.7rem;
+    bottom: 0.05rem;
+    height: 2px;
+    border-radius: 2px;
+    background: var(--primary);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.25s cubic-bezier(0.22, 0.8, 0.3, 1);
+  }
   .chapter-link.active { color: var(--primary); }
+  .chapter-link.active::after { transform: scaleX(1); }
 
   .chapter-actions {
     margin-left: auto;
@@ -408,66 +452,103 @@ onDestroy(() => observer?.disconnect());
   }
 
   .ghost-btn {
-    padding: 0.25rem 0.8rem;
-    border: 1px solid var(--line-divider);
+    padding: 0.22rem 0.75rem;
+    border: 1px dashed var(--line-divider);
     border-radius: 9999px;
     background: transparent;
     color: inherit;
-    opacity: 0.6;
-    font-size: 0.78rem;
+    opacity: 0.55;
+    font-size: 0.76rem;
     cursor: pointer;
-    transition: opacity 0.15s ease, background 0.15s ease, color 0.15s ease;
+    transition: opacity 0.15s ease, background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
   }
   .ghost-btn:hover { opacity: 1; background: var(--btn-plain-bg-hover); }
   .ghost-btn.tidy.on {
     opacity: 1;
+    border-style: solid;
     border-color: transparent;
     background: var(--primary);
     color: white;
   }
 
   .tidy-hint {
-    margin: -0.75rem 0 0;
+    margin: -1rem 0 0;
+    padding-left: 0.7rem;
+    border-left: 2px dashed color-mix(in oklab, var(--primary) 40%, transparent);
     font-size: 0.78rem;
-    line-height: 1.6;
+    line-height: 1.65;
     opacity: 0.55;
   }
 
   /* ---------- 章节 ---------- */
   .chapter {
+    position: relative;
     display: flex;
     flex-direction: column;
-    gap: 1.1rem;
+    gap: 1.25rem;
     scroll-margin-top: 7rem;
   }
 
+  /*
+   * 每章一个色相，从主题色偏移。数值挑的是能在同一张纸上共存的间距：
+   * 差太近分不出来，差太远像三个站。
+   */
+  .chapter[data-sec="daily"]   { --sec-hue: var(--hue); }
+  .chapter[data-sec="content"] { --sec-hue: calc(var(--hue) + 128); }
+  .chapter[data-sec="tools"]   { --sec-hue: calc(var(--hue) + 236); }
+  .chapter { --sec-tint: oklch(0.56 0.11 var(--sec-hue)); }
+  :global(.dark) .chapter { --sec-tint: oklch(0.78 0.11 var(--sec-hue)); }
+
   .chapter-head {
+    position: relative;
     display: flex;
     align-items: baseline;
     gap: 0.6rem;
+    padding-left: 2.4rem;
+  }
+
+  /* 巨大的页码，压在标题左后方，标题把它盖住一角 */
+  .chapter-no {
+    position: absolute;
+    left: -0.35rem;
+    top: 50%;
+    transform: translateY(-52%);
+    z-index: -1;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 3.6rem;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -0.05em;
+    color: color-mix(in oklab, var(--sec-tint) 17%, transparent);
+    user-select: none;
   }
 
   .chapter-title {
     margin: 0;
-    font-size: 1.35rem;
+    font-size: 1.3rem;
     font-weight: 700;
-    letter-spacing: -0.01em;
+    letter-spacing: 0.02em;
     line-height: 1.2;
   }
 
   .chapter-hint {
-    font-size: 0.8rem;
-    opacity: 0.45;
+    font-size: 0.78rem;
+    opacity: 0.4;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
 
+  /* 点线，不是实线 —— 手账上的裁切线 */
   .chapter-rule {
     flex: 1;
     min-width: 1rem;
     height: 1px;
-    background: var(--line-divider);
+    background-image: repeating-linear-gradient(
+      90deg,
+      color-mix(in oklab, var(--sec-tint) 45%, transparent) 0 3px,
+      transparent 3px 7px
+    );
   }
 
   /*
@@ -477,8 +558,9 @@ onDestroy(() => observer?.disconnect());
   .grid {
     display: grid;
     grid-template-columns: repeat(6, minmax(0, 1fr));
-    gap: 1.75rem 2.25rem;
+    gap: 2rem 2.4rem;
     align-items: start;
+    padding-left: 2.4rem;
   }
 
   /* 顶栏 + 粘性章节条约 7rem，锚点跳转（/stats/ → #stats）时别被压在下面 */
@@ -489,21 +571,31 @@ onDestroy(() => observer?.disconnect());
 
   /* 中屏：窄块两个并排，其余通栏 */
   @media (max-width: 1023px) {
-    .grid { gap: 1.5rem; }
+    .grid { gap: 1.6rem; padding-left: 1.6rem; }
+    .chapter-head { padding-left: 1.6rem; }
     .cell[data-size="narrow"] { grid-column: span 3; }
     .cell[data-size="half"]   { grid-column: span 6; }
   }
 
-  /* 窄屏：一律单列 */
+  /* 窄屏：一律单列，页码缩到不抢地方 */
   @media (max-width: 640px) {
     .chapters { top: 4.5rem; }
-    .chapter-title { font-size: 1.15rem; }
+    .chapter-head, .grid { padding-left: 0; }
+    .chapter-no {
+      left: auto;
+      right: 0;
+      top: -0.35rem;
+      transform: none;
+      font-size: 2.4rem;
+    }
+    .chapter-title { font-size: 1.1rem; }
     .chapter-hint { display: none; }
     .cell[data-size="narrow"] { grid-column: span 6; }
+    .dashboard::before { inset: -2rem -1rem auto; height: 22rem; }
   }
 
   /*
-   * 入场编排：章节依次浮现，而不是整屏同时砸下来。
+   * 入场编排：模块依次浮现，而不是整屏同时砸下来。
    * 每块延迟 60ms，最后一块也在半秒内到位，不会让人等。
    */
   .cell {
@@ -517,6 +609,6 @@ onDestroy(() => observer?.disconnect());
 
   @media (prefers-reduced-motion: reduce) {
     .cell { animation: none; }
-    .chapter-link, .ghost-btn { transition: none; }
+    .chapter-link, .chapter-link::after, .ghost-btn { transition: none; }
   }
 </style>

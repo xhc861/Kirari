@@ -85,7 +85,7 @@ $: if (loaded) dispatch("summary", total ? `${done}/${total}` : "空着");
   .progress-fill {
     height: 100%;
     border-radius: 3px;
-    background: var(--primary);
+    background: var(--sec-tint, var(--primary));
     transition: width 0.4s cubic-bezier(0.22, 0.8, 0.3, 1);
   }
 
@@ -110,7 +110,7 @@ $: if (loaded) dispatch("summary", total ? `${done}/${total}` : "空着");
     flex-shrink: 0;
     width: 1em;
     font-size: 0.85em;
-    color: var(--primary);
+    color: var(--sec-tint, var(--primary));
   }
 
   .item.done { opacity: 0.45; }

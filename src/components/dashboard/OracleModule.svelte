@@ -149,7 +149,7 @@ onDestroy(() => controller?.abort());
   }
   .field:focus {
     outline: none;
-    border-color: var(--primary);
+    border-color: var(--sec-tint, var(--primary));
   }
   .field:disabled { opacity: 0.5; }
   .field::placeholder { opacity: 0.4; }
@@ -159,7 +159,7 @@ onDestroy(() => controller?.abort());
     padding: 0.45rem 0.8rem;
     border: none;
     border-radius: 0.5rem;
-    background: var(--primary);
+    background: var(--sec-tint, var(--primary));
     color: white;
     font-size: 0.82rem;
     font-weight: 600;
@@ -190,7 +190,7 @@ onDestroy(() => controller?.abort());
 
   .answer {
     padding-left: 0.75rem;
-    border-left: 2px solid var(--primary);
+    border-left: 2px solid var(--sec-tint, var(--primary));
   }
 
   .asked {
@@ -202,7 +202,7 @@ onDestroy(() => controller?.abort());
   .title {
     font-size: 0.95rem;
     font-weight: 700;
-    color: var(--primary);
+    color: var(--sec-tint, var(--primary));
     line-height: 1.4;
   }
 
@@ -226,7 +226,7 @@ onDestroy(() => controller?.abort());
     background: none;
     padding: 0;
     font-size: 0.78rem;
-    color: var(--primary);
+    color: var(--sec-tint, var(--primary));
     cursor: pointer;
     opacity: 0.8;
   }

@@ -92,7 +92,7 @@ function chars(n: number): string {
     line-clamp: 2;
     -webkit-box-orient: vertical;
   }
-  .link:hover .title { color: var(--primary); }
+  .link:hover .title { color: var(--sec-tint, var(--primary)); }
 
   .meta {
     display: flex;

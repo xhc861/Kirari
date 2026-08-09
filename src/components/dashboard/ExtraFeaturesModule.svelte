@@ -349,7 +349,7 @@ function playPronunciation(url: string, type: "uk" | "us") {
     margin-top: auto;
     padding: 0.5rem;
     background: transparent;
-    color: var(--primary);
+    color: var(--sec-tint, var(--primary));
     border: 1px solid color-mix(in oklab, var(--primary) 40%, transparent);
     border-radius: 0.5rem;
     font-size: 0.85rem;
@@ -359,7 +359,7 @@ function playPronunciation(url: string, type: "uk" | "us") {
   }
   .feature-btn:hover:not(:disabled) {
     background: color-mix(in oklab, var(--primary) 10%, transparent);
-    border-color: var(--primary);
+    border-color: var(--sec-tint, var(--primary));
   }
 
   .feature-btn:disabled {
@@ -607,9 +607,9 @@ function playPronunciation(url: string, type: "uk" | "us") {
   }
 
   .phonetic-btn:hover:not(:disabled) {
-    background: var(--primary);
+    background: var(--sec-tint, var(--primary));
     color: white;
-    border-color: var(--primary);
+    border-color: var(--sec-tint, var(--primary));
   }
 
   .phonetic-btn:disabled {
@@ -653,7 +653,7 @@ function playPronunciation(url: string, type: "uk" | "us") {
   .sentences-section h4 {
     font-size: 1rem;
     font-weight: 600;
-    color: var(--primary);
+    color: var(--sec-tint, var(--primary));
     margin-bottom: 0.75rem;
   }
 
@@ -672,7 +672,7 @@ function playPronunciation(url: string, type: "uk" | "us") {
   }
 
   .pos {
-    color: var(--primary);
+    color: var(--sec-tint, var(--primary));
     font-weight: 600;
     margin-right: 0.5rem;
   }

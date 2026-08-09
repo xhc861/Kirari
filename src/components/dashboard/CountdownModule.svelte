@@ -142,13 +142,15 @@ onDestroy(() => {
     align-items: baseline;
     gap: 0.15rem;
     font-variant-numeric: tabular-nums;
-    color: var(--primary);
+    color: var(--sec-tint, var(--primary));
   }
+  /* 衬线的数字比无衬线暖，倒计时看的就是这一个数 */
   .n {
-    font-size: 1.85rem;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 2.1rem;
     font-weight: 700;
     line-height: 1;
-    letter-spacing: -0.03em;
+    letter-spacing: -0.02em;
   }
   .u {
     font-size: 0.72rem;
