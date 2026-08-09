@@ -41,23 +41,21 @@ function applyNavbarSettingsMobile() {
             if (settings.navbarLinks) {
                 const links = document.querySelectorAll('.navbar-link-mobile');
                 links.forEach(link => {
-                    const url = link.getAttribute('data-link-url');
-                    // 只处理内部链接
-                    if (url && !link.hasAttribute('target')) {
-                        const htmlLink = link as HTMLElement;
-                        if (url === '/' || url.includes('home')) {
-                            htmlLink.style.display = settings.navbarLinks.home ? '' : 'none';
-                        } else if (url.includes('archive')) {
-                            htmlLink.style.display = settings.navbarLinks.archive ? '' : 'none';
-                        } else if (url.includes('about')) {
-                            htmlLink.style.display = settings.navbarLinks.about ? '' : 'none';
-                        } else if (url.includes('friends')) {
-                            htmlLink.style.display = settings.navbarLinks.friends ? '' : 'none';
-                        } else if (url.includes('dashboard')) {
-                            htmlLink.style.display = (settings.navbarLinks.dashboard ?? settings.navbarLinks.gallery) ? '' : 'none';
-                        }
-                    }
-                });
+const raw = link.getAttribute('data-link-url') || '';
+// 只处理内部链接，外部链接（如 GitHub）不受设置控制
+if (raw && !link.hasAttribute('target')) {
+    /*
+     * 用链接自带的 data-link-url 派生键来匹配，而不是拿 URL 猜关键词。
+     * 之前是一串 if (url.includes('archive')) 的硬编码，每加一个导航项
+     * 就要同步改这里，漏一处就失效 —— 加「统计」时就漏过。
+     */
+    const key = raw.replace(/^\/+|\/+$/g, '').split('/')[0] || 'home';
+    const visible = settings.navbarLinks[key]
+        ?? (key === 'dashboard' ? settings.navbarLinks.gallery : undefined)
+        ?? true;
+    (link as HTMLElement).style.display = visible ? '' : 'none';
+}
+});
             }
         } catch (e) {
             console.error('Failed to apply navbar settings (mobile):', e);

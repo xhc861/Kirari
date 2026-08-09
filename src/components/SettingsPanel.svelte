@@ -1,5 +1,13 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { getNavLinkEntries } from '@utils/navbar-utils';
+
+  /*
+   * 导航开关由 navBarConfig 自动生成。
+   * 原先是把每一项写死成一个字段，加一个导航项（如「统计」）就要同步改
+   * 设置面板、Navbar、NavMenuPanel 三处，漏一处就失效 —— 已经漏过两次。
+   */
+  const navEntries = getNavLinkEntries();
   
   // 特效设置
   let confettiEnabled = true;
@@ -8,13 +16,9 @@
   let grayscaleEnabled = false;
 
   // 导航栏设置
-  let navbarLinks = {
-    home: true,
-    archive: true,
-    about: true,
-    friends: true,
-    dashboard: true
-  };
+  let navbarLinks: Record<string, boolean> = Object.fromEntries(
+    navEntries.map((e) => [e.key, true]),
+  );
   
   // 音乐设置
   let musicPlaylist: Array<{title: string, artist: string, src: string}> = [];
@@ -52,16 +56,17 @@
       grayscaleEnabled = settings.grayscaleEnabled ?? false;
       if (settings.navbarLinks) {
         /*
-         * 展板的路由从 /gallery/ 改成了 /dashboard/，设置键名同步更名。
-         * 老用户本地存的还是 gallery，这里做一次兼容读取，
-         * 否则他们之前关掉的展板入口会莫名其妙又冒出来。
+         * 只取当前实际存在的导航项，并让新增项默认显示 ——
+         * 否则新加的导航项会因为老设置里查不到而被判成「隐藏」。
+         * 展板的键曾从 gallery 改成 dashboard，这里一并兼容。
          */
         const saved = settings.navbarLinks;
-        navbarLinks = {
-          ...navbarLinks,
-          ...saved,
-          dashboard: saved.dashboard ?? saved.gallery ?? true,
-        };
+        navbarLinks = Object.fromEntries(
+          navEntries.map((e) => [
+            e.key,
+            saved[e.key] ?? (e.key === "dashboard" ? saved.gallery : undefined) ?? true,
+          ]),
+        );
       }
     }
 
@@ -235,47 +240,17 @@
       {#if activeTab === 'navbar'}
         <div class="tab-content">
           <p class="section-desc">选择要在导航栏显示的链接</p>
-          
-          <div class="setting-item">
-            <label class="checkbox-label">
-              <input type="checkbox" bind:checked={navbarLinks.home} on:change={applySettings} />
-              <span class="checkbox-custom"></span>
-              <span class="label-text">首页</span>
-            </label>
-          </div>
-          
-          <div class="setting-item">
-            <label class="checkbox-label">
-              <input type="checkbox" bind:checked={navbarLinks.archive} on:change={applySettings} />
-              <span class="checkbox-custom"></span>
-              <span class="label-text">文章集</span>
-            </label>
-          </div>
-          
-          <div class="setting-item">
-            <label class="checkbox-label">
-              <input type="checkbox" bind:checked={navbarLinks.about} on:change={applySettings} />
-              <span class="checkbox-custom"></span>
-              <span class="label-text">关于</span>
-            </label>
-          </div>
-          
-          <div class="setting-item">
-            <label class="checkbox-label">
-              <input type="checkbox" bind:checked={navbarLinks.friends} on:change={applySettings} />
-              <span class="checkbox-custom"></span>
-              <span class="label-text">友链&外站</span>
-            </label>
-          </div>
-          
-          <div class="setting-item">
-            <label class="checkbox-label">
-              <input type="checkbox" bind:checked={navbarLinks.dashboard} on:change={applySettings} />
-              <span class="checkbox-custom"></span>
-              <span class="label-text">展板</span>
-            </label>
-          </div>
-          
+
+          {#each navEntries as entry (entry.key)}
+            <div class="setting-item">
+              <label class="checkbox-label">
+                <input type="checkbox" bind:checked={navbarLinks[entry.key]} on:change={applySettings} />
+                <span class="checkbox-custom"></span>
+                <span class="label-text">{entry.name}</span>
+              </label>
+            </div>
+          {/each}
+
           <p class="hint">修改后需要刷新，否则会有异常</p>
         </div>
       {/if}
