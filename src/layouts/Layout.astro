@@ -82,11 +82,12 @@ if (title) {
  */
 const paletteItems = [
 	{ type: "page" as const, title: "首页", url: url("/") },
-	{ type: "page" as const, title: "归档", url: url("/archive/") },
+	{ type: "page" as const, title: "作品集", url: url("/works/") },
+	{ type: "page" as const, title: "文章", url: url("/works/posts/") },
+	{ type: "page" as const, title: "谱曲", url: url("/works/scores/") },
 	{ type: "page" as const, title: "关于", url: url("/about/") },
 	{ type: "page" as const, title: "友链", url: url("/friends/") },
 	{ type: "page" as const, title: "展板", url: url("/dashboard/") },
-	{ type: "page" as const, title: "写作统计", url: url("/stats/") },
 	...(await getSortedPosts()).map((p) => ({
 		type: "post" as const,
 		title: p.data.title,

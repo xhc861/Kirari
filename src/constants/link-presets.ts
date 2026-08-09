@@ -11,9 +11,13 @@ export const LinkPresets: { [key in LinkPreset]: NavBarLink } = {
 		name: i18n(I18nKey.about),
 		url: "/about/",
 	},
-	[LinkPreset.Archive]: {
-		name: i18n(I18nKey.archive),
-		url: "/archive/",
+	[LinkPreset.Works]: {
+		name: "作品集",
+		url: "/works/",
+		children: [
+			{ name: i18n(I18nKey.archive), url: "/works/posts/" },
+			{ name: "谱曲", url: "/works/scores/" },
+		],
 	},
 	[LinkPreset.Other]: {
 		name: "展板",

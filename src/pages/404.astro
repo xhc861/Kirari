@@ -27,7 +27,7 @@ const recent = (await getSortedPosts()).slice(0, 3);
 
         <div class="flex flex-wrap gap-3 justify-center mb-10">
             <a href={url('/')} class="btn-regular px-5 py-2.5 rounded-lg font-medium">回首页</a>
-            <a href={url('/archive/')} class="btn-card px-5 py-2.5 rounded-lg font-medium border border-[var(--line-divider)]">翻归档</a>
+            <a href={url('/works/posts/')} class="btn-card px-5 py-2.5 rounded-lg font-medium border border-[var(--line-divider)]">翻作品集</a>
         </div>
 
         {recent.length > 0 && (

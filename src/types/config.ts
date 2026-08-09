@@ -58,7 +58,8 @@ export type Favicon = {
 
 export enum LinkPreset {
 	Home = 0,
-	Archive = 1,
+	/** 作品集（原「文章集」，现在是文章与谱曲的父级） */
+	Works = 1,
 	About = 2,
 	Other = 3,
 	friend = 4,
@@ -69,6 +70,11 @@ export type NavBarLink = {
 	name: string;
 	url: string;
 	external?: boolean;
+	/**
+	 * 二级项。有 children 的链接在顶栏渲染成下拉，父级本身仍可点。
+	 * 显隐设置只认父级（见 utils/navbar-utils.ts），整个下拉一起开关。
+	 */
+	children?: NavBarLink[];
 };
 
 export type NavBarConfig = {

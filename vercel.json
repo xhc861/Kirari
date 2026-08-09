@@ -1,4 +1,12 @@
 {
+  "redirects": [
+    { "source": "/archive", "destination": "/works/posts/", "permanent": true },
+    { "source": "/archive/", "destination": "/works/posts/", "permanent": true },
+    { "source": "/stats", "destination": "/dashboard/#stats", "permanent": true },
+    { "source": "/stats/", "destination": "/dashboard/#stats", "permanent": true },
+    { "source": "/gallery", "destination": "/dashboard/", "permanent": true },
+    { "source": "/gallery/", "destination": "/dashboard/", "permanent": true }
+  ],
   "headers": [
     {
       "source": "/(.*).json",

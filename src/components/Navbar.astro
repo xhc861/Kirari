@@ -34,6 +34,32 @@ let links: NavBarLink[] = navBarConfig.links.map(
         </a>
         <div class="hidden md:flex" id="navbar-links">
             {links.map((l) => {
+                /*
+                 * 带 children 的项渲染成下拉。父级本身仍是链接（点进落地页），
+                 * 展开只靠 CSS 的 :hover 与 :focus-within —— 二级项用 opacity
+                 * 隐藏而不是 visibility/display，否则它们不可聚焦，
+                 * 键盘用户永远也触发不了 focus-within，等于没有这层菜单。
+                 */
+                if (l.children?.length) {
+                    return <div class="nav-dropdown-wrapper navbar-link" data-link-url={l.url}>
+                        <a aria-label={l.name} href={url(l.url)} aria-haspopup="true"
+                           class="btn-plain scale-animation rounded-lg h-11 font-bold px-5 active:scale-95">
+                            <div class="flex items-center gap-1">
+                                {l.name}
+                                <Icon name="material-symbols:keyboard-arrow-down-rounded" class="text-[1.1rem] nav-caret transition"></Icon>
+                            </div>
+                        </a>
+                        <div class="nav-dropdown">
+                            {l.children.map((c) => (
+                                <a href={c.external ? c.url : url(c.url)} target={c.external ? "_blank" : null}
+                                   class="nav-dropdown-item">
+                                    {c.name}
+                                    {c.external && <Icon name="fa6-solid:arrow-up-right-from-square" class="text-[0.75rem] ml-1 text-black/[0.2] dark:text-white/[0.2]"></Icon>}
+                                </a>
+                            ))}
+                        </div>
+                    </div>;
+                }
                 return <a aria-label={l.name} href={l.external ? l.url : url(l.url)} target={l.external ? "_blank" : null}
                           class="btn-plain scale-animation rounded-lg h-11 font-bold px-5 active:scale-95 navbar-link"
                           data-link-url={l.url}
@@ -67,7 +93,74 @@ let links: NavBarLink[] = navBarConfig.links.map(
     </div>
 </div>
 
+<style>
+    .nav-dropdown-wrapper {
+        position: relative;
+    }
+
+    .nav-dropdown {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        min-width: 9rem;
+        padding: 0.35rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.15rem;
+        background: var(--card-bg);
+        border: 1px solid var(--line-divider);
+        border-radius: 0.75rem;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        /*
+         * 用 opacity 而不是 visibility / display 隐藏：后两者会让内部链接
+         * 不可聚焦，键盘 Tab 进不去，:focus-within 就永远不成立 ——
+         * 菜单对键盘用户等于不存在。opacity 为 0 的元素仍可聚焦，
+         * 一旦聚焦父级的 focus-within 立刻成立，菜单随即显形。
+         */
+        opacity: 0;
+        pointer-events: none;
+        transform: translateY(-0.35rem);
+        transition: opacity 0.18s ease, transform 0.18s ease;
+        z-index: 60;
+    }
+
+    .nav-dropdown-wrapper:hover .nav-dropdown,
+    .nav-dropdown-wrapper:focus-within .nav-dropdown {
+        opacity: 1;
+        pointer-events: auto;
+        transform: translateY(0);
+    }
+
+    .nav-dropdown-wrapper:hover .nav-caret,
+    .nav-dropdown-wrapper:focus-within .nav-caret {
+        transform: rotate(180deg);
+    }
+
+    .nav-dropdown-item {
+        display: flex;
+        align-items: center;
+        padding: 0.5rem 0.75rem;
+        border-radius: 0.5rem;
+        font-weight: 600;
+        font-size: 0.95rem;
+        color: var(--btn-content);
+        white-space: nowrap;
+        transition: background 0.15s ease, color 0.15s ease;
+    }
+    .nav-dropdown-item:hover,
+    .nav-dropdown-item:focus-visible {
+        background: var(--btn-plain-bg-hover);
+        color: var(--primary);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .nav-dropdown, .nav-caret, .nav-dropdown-item { transition: none; }
+    }
+</style>
+
 <script>
+import { NAV_KEY_FALLBACKS } from '../utils/navbar-utils';
+
 function switchTheme() {
     if (localStorage.theme === 'dark') {
         document.documentElement.classList.remove('dark');
@@ -87,16 +180,22 @@ function applyNavbarSettings() {
                 const links = document.querySelectorAll('.navbar-link');
                 links.forEach(link => {
 const raw = link.getAttribute('data-link-url') || '';
-// 只处理内部链接，外部链接（如 GitHub）不受设置控制
-if (raw && !link.hasAttribute('target')) {
+/*
+ * 只处理内部链接，外部链接（如 GitHub）不受设置控制。
+ * 看 URL 而不是看元素上有没有 target —— 带下拉的项外层是个 div，
+ * target 挂在里面的 <a> 上，靠属性判断会漏。
+ */
+if (raw && !/^https?:\/\//.test(raw)) {
     /*
      * 用链接自带的 data-link-url 派生键来匹配，而不是拿 URL 猜关键词。
      * 之前是一串 if (url.includes('archive')) 的硬编码，每加一个导航项
      * 就要同步改这里，漏一处就失效 —— 加「统计」时就漏过。
      */
     const key = raw.replace(/^\/+|\/+$/g, '').split('/')[0] || 'home';
+    // 改过路由的项要回落到旧键，否则老设置读不到，关掉的项会自己冒出来
+    const fallbackKey = NAV_KEY_FALLBACKS[key];
     const visible = settings.navbarLinks[key]
-        ?? (key === 'dashboard' ? settings.navbarLinks.gallery : undefined)
+        ?? (fallbackKey ? settings.navbarLinks[fallbackKey] : undefined)
         ?? true;
     (link as HTMLElement).style.display = visible ? '' : 'none';
 }
@@ -138,9 +237,19 @@ function loadButtonScript() {
     
     // 应用导航栏设置
     applyNavbarSettings();
-    
+
     // 监听设置变化
     window.addEventListener('effectsSettingsChanged', applyNavbarSettings);
+
+    /*
+     * 下拉菜单靠 CSS 的 :hover / :focus-within 展开，唯独 Esc 收起做不到 ——
+     * 把焦点移开即可让 focus-within 失效。
+     */
+    document.addEventListener('keydown', (e) => {
+        if (e.key !== 'Escape') return;
+        const active = document.activeElement as HTMLElement | null;
+        if (active?.closest('.nav-dropdown')) active.blur();
+    });
 }
 
 loadButtonScript();

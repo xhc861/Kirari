@@ -1,0 +1,162 @@
+---
+/**
+ * 作品集落地页。
+ *
+ * 站点的内容不再只有文章，这一层负责回答「这里有哪几类东西、各有多少、
+ * 最近在做什么」，再往下分流到文章或谱曲。
+ *
+ * 数量与最近条目都在构建期算好，页面没有任何运行时请求。
+ */
+import MainGridLayout from "@layouts/MainGridLayout.astro";
+import { Icon } from "astro-icon/components";
+import { getSortedPostsList, getSortedScores } from "@utils/content-utils";
+import { formatDateToYYYYMMDD } from "@utils/date-utils";
+import { url } from "@utils/url-utils";
+
+const posts = await getSortedPostsList();
+const scores = await getSortedScores();
+
+const sections = [
+	{
+		name: "文章",
+		desc: "写下来的东西：教程、记录、观点",
+		href: "/works/posts/",
+		icon: "material-symbols:article-outline-rounded",
+		count: posts.length,
+		unit: "篇",
+		recent: posts.slice(0, 3).map((p) => ({
+			title: p.data.title,
+			date: formatDateToYYYYMMDD(p.data.published),
+			href: `/posts/${p.slug}/`,
+		})),
+	},
+	{
+		name: "谱曲",
+		desc: "写出来的东西：原创与改编",
+		href: "/works/scores/",
+		icon: "material-symbols:music-note-outline-rounded",
+		count: scores.length,
+		unit: "首",
+		recent: scores.slice(0, 3).map((s) => ({
+			title: s.data.title,
+			date: formatDateToYYYYMMDD(s.data.published),
+			href: `/works/scores/${s.id}/`,
+		})),
+	},
+];
+---
+
+<MainGridLayout title="作品集" description="文章与谱曲">
+    <div class="card-base px-6 md:px-9 py-6 mb-4 onload-animation">
+        <h1 class="text-2xl md:text-3xl font-bold text-90 mb-2">作品集</h1>
+        <p class="text-75 text-sm">写下来的和写出来的，都在这里。</p>
+    </div>
+
+    <div class="works-grid onload-animation">
+        {sections.map((s) => (
+            <a href={url(s.href)} class="card-base work-card px-6 py-6">
+                <div class="flex items-center gap-3 mb-1">
+                    <Icon name={s.icon} class="text-[1.6rem] text-[var(--primary)]" />
+                    <h2 class="text-xl font-bold text-90">{s.name}</h2>
+                    <span class="work-count">{s.count} {s.unit}</span>
+                </div>
+                <p class="text-75 text-sm mb-4">{s.desc}</p>
+
+                {s.recent.length > 0 ? (
+                    <ul class="work-recent">
+                        {s.recent.map((r) => (
+                            <li>
+                                <span class="work-recent-date">{r.date}</span>
+                                <span class="work-recent-title">{r.title}</span>
+                            </li>
+                        ))}
+                    </ul>
+                ) : (
+                    <p class="text-50 text-sm">还没有内容。</p>
+                )}
+
+                <div class="work-more">
+                    进入{s.name}
+                    <Icon name="material-symbols:chevron-right-rounded" class="text-[1.1rem]" />
+                </div>
+            </a>
+        ))}
+    </div>
+</MainGridLayout>
+
+<style>
+    .works-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    /* 两类作品并排，窄屏回落成单列 */
+    @media (min-width: 768px) {
+        .works-grid { grid-template-columns: 1fr 1fr; }
+    }
+
+    .work-card {
+        display: flex;
+        flex-direction: column;
+        transition: transform 0.24s ease, box-shadow 0.24s ease;
+    }
+    .work-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.07);
+    }
+    :global(.dark) .work-card:hover {
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+    }
+
+    .work-count {
+        margin-left: auto;
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: var(--primary);
+        background: color-mix(in oklab, var(--primary) 12%, transparent);
+        padding: 0.15rem 0.55rem;
+        border-radius: 9999px;
+        white-space: nowrap;
+    }
+
+    .work-recent {
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+        margin: 0 0 1rem;
+        padding: 0;
+        list-style: none;
+    }
+    .work-recent li {
+        display: flex;
+        align-items: baseline;
+        gap: 0.6rem;
+        font-size: 0.875rem;
+        min-width: 0;
+    }
+    .work-recent-date {
+        flex-shrink: 0;
+        font-variant-numeric: tabular-nums;
+        font-size: 0.78rem;
+        opacity: 0.55;
+    }
+    .work-recent-title {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .work-more {
+        margin-top: auto;
+        display: flex;
+        align-items: center;
+        gap: 0.15rem;
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: var(--primary);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .work-card, .work-card:hover { transition: none; transform: none; }
+    }
+</style>

@@ -17,6 +17,23 @@ async function getRawSortedPosts() {
 	return sorted;
 }
 
+/**
+ * 谱曲作品，按发布时间倒序。
+ *
+ * 与文章走同一套草稿规则：开发时全部可见，构建产物里剔掉 draft。
+ */
+export async function getSortedScores(): Promise<CollectionEntry<"scores">[]> {
+	const all = await getCollection("scores", ({ data }) => {
+		return import.meta.env.PROD ? data.draft !== true : true;
+	});
+
+	return all.sort((a, b) => {
+		const dateA = new Date(a.data.published);
+		const dateB = new Date(b.data.published);
+		return dateA > dateB ? -1 : 1;
+	});
+}
+
 export async function getSortedPosts(): Promise<CollectionEntry<"posts">[]> {
 	const sorted = await getRawSortedPosts();
 

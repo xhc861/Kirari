@@ -1,33 +1,5 @@
 ---
-import ArchivePanel from "@components/ArchivePanel.svelte";
-import MicroNewsAnnouncement from "@components/MicroNewsAnnouncement.svelte";
-import I18nKey from "@i18n/i18nKey";
-import { i18n } from "@i18n/translation";
-import MainGridLayout from "@layouts/MainGridLayout.astro";
-import SubscribeCard from "@components/SubscribeCard.astro";
-import { getSortedPostsList } from "../utils/content-utils";
-
-const sortedPostsList = await getSortedPostsList();
-
-// Convert posts to match ArchivePanel's expected type
-const postsForArchive = sortedPostsList.map((post) => ({
-	slug: post.slug,
-	data: {
-		title: post.data.title,
-		tags: post.data.tags,
-		category: post.data.category ?? undefined,
-		published: post.data.published,
-	},
-}));
-
-
+/** 旧地址：文章集已并入作品集。 */
+import RedirectTo from "@components/misc/RedirectTo.astro";
 ---
-
-<MainGridLayout title={i18n(I18nKey.archive)}>
-    <!-- @ts-ignore -->
-    <MicroNewsAnnouncement client:load />
-    <ArchivePanel tags={[]} categories={[]} sortedPosts={postsForArchive} client:only="svelte"></ArchivePanel>
-
-    <SubscribeCard class="mt-4 onload-animation" />
-</MainGridLayout>
-
+<RedirectTo to="/works/posts/" label="文章集已改名为作品集，" />

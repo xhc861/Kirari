@@ -81,10 +81,15 @@ export default defineConfig({
 	adapter: vercel(),
 	// Astro 7 将默认值改为 'jsx'（按 JSX 规则剥离空白），保持旧行为避免排版变化
 	compressHTML: true,
-	redirects: {
-		// 展板原有两个入口（/gallery/ 与 /dashboard/）渲染同一组件，现统一到 /dashboard/
-		"/gallery": "/dashboard/",
-	},
+	/*
+	 * 不用 Astro 的 redirects：在 trailingSlash: "always" + Vercel 适配器下它是
+	 * 失效的。适配器先生成一条把 /foo 补成 /foo/ 的 308，排在重定向规则之前，
+	 * 于是重定向匹配的 ^/foo$ 永远轮不到，最后落进 404；静态模式下它也不生成
+	 * 任何文件。原有的 "/gallery" 那条就一直是坏的。
+	 *
+	 * 旧地址改用两条腿：vercel.json 里的平台级 301，加 src/pages 下的静态跳转页
+	 * （见 components/misc/RedirectTo.astro）兜底。
+	 */
 	integrations: [
 		swup({
 			theme: false,
