@@ -124,3 +124,26 @@
     }
   }
 }
+
+/*
+ * 目录跟随阅读位置。
+ * 类由 ReadingCompanion 的脚本添加，所以样式放在全局而非组件内。
+ */
+#toc a.toc-current {
+    background: color-mix(in oklab, var(--primary) 14%, transparent);
+    color: var(--primary);
+    font-weight: 600;
+}
+
+/* 读过的章节淡下去，形成「走过的路」 */
+#toc a.toc-passed {
+    opacity: 0.45;
+}
+
+#toc a {
+    transition: opacity 0.35s ease, background 0.25s ease, color 0.25s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #toc a { transition: none; }
+}

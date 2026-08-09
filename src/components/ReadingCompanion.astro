@@ -1,0 +1,155 @@
+---
+/**
+ * 阅读陪伴。
+ *
+ * 两件事：
+ *  1. 目录跟着你走 —— 当前所在章节高亮，读过的章节淡下去
+ *  2. 读到文末给一句回应，而不是让人直接撞上冷冰冰的评论区标题
+ *
+ * 这两个都不是装饰性动效：它们回应「你读到哪了」，是页面唯一会跟着读者
+ * 变化的部分。站点被形容成「死水」，缺的正是这种回应。
+ */
+---
+
+<div id="reading-done" class="reading-done" hidden>
+    <span class="done-mark" aria-hidden="true"></span>
+    <span class="done-text"></span>
+</div>
+
+<style>
+    .reading-done {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.6rem;
+        margin: 0 0 1.5rem;
+        padding: 0.9rem 1.2rem;
+        border-radius: var(--radius-large);
+        background: color-mix(in oklab, var(--primary) 8%, var(--card-bg));
+        /* 设了背景就要设配套前景色，否则深色模式下会继承成黑字 */
+        color: rgba(0, 0, 0, 0.7);
+        font-size: 0.9rem;
+        opacity: 0;
+        transform: translateY(8px);
+        transition: opacity 0.5s ease, transform 0.5s ease;
+    }
+    :global(.dark) .reading-done {
+        color: rgba(255, 255, 255, 0.7);
+    }
+    .reading-done[hidden] { display: none; }
+    .reading-done.shown {
+        opacity: 1;
+        transform: none;
+    }
+
+    .done-mark {
+        width: 0.5rem;
+        height: 0.5rem;
+        border-radius: 9999px;
+        background: var(--primary);
+        flex-shrink: 0;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .reading-done { transition: none; }
+    }
+</style>
+
+<script is:inline>
+(() => {
+  /* 读完时说的话。随机取一句，别每次都一模一样 */
+  const DONE_WORDS = [
+    "读完了，辛苦你看到这儿。",
+    "到底了。要是有想法，往下留两句？",
+    "这篇就到这儿了，谢谢你读完。",
+    "看完了 —— 希望没浪费你的时间。",
+  ];
+
+  function init() {
+    /* ---------- 目录跟随 ---------- */
+    const tocLinks = Array.from(
+      document.querySelectorAll('#toc a[href^="#"]')
+    );
+    const article = document.getElementById("post-container");
+
+    if (tocLinks.length > 0 && article) {
+      const idToLink = new Map();
+      for (const a of tocLinks) {
+        const id = decodeURIComponent(a.getAttribute("href").slice(1));
+        if (id) idToLink.set(id, a);
+      }
+
+      const targets = [...idToLink.keys()]
+        .map((id) => document.getElementById(id))
+        .filter(Boolean);
+
+      if (targets.length > 0) {
+        let current = null;
+
+        const observer = new IntersectionObserver(
+          (entries) => {
+            // 取当前视口内最靠上的标题作为「所在章节」
+            const visible = entries
+              .filter((e) => e.isIntersecting)
+              .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+            if (visible.length === 0) return;
+
+            const id = visible[0].target.id;
+            if (id === current) return;
+            current = id;
+
+            const activeIndex = targets.findIndex((t) => t.id === id);
+            targets.forEach((t, i) => {
+              const link = idToLink.get(t.id);
+              if (!link) return;
+              link.classList.toggle("toc-current", i === activeIndex);
+              // 读过的章节淡下去，形成「走过的路」
+              link.classList.toggle("toc-passed", i < activeIndex);
+            });
+          },
+          { rootMargin: "-72px 0px -70% 0px", threshold: 0 }
+        );
+
+        for (const t of targets) observer.observe(t);
+      }
+    }
+
+    /* ---------- 读完提示 ---------- */
+    const done = document.getElementById("reading-done");
+    if (!done || !article) return;
+
+    const textEl = done.querySelector(".done-text");
+    if (textEl && !textEl.textContent) {
+      textEl.textContent =
+        DONE_WORDS[Math.floor(Math.random() * DONE_WORDS.length)];
+    }
+
+    const sentinel = document.createElement("div");
+    sentinel.style.height = "1px";
+    article.appendChild(sentinel);
+
+    const endObserver = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (!e.isIntersecting) continue;
+          done.hidden = false;
+          // 下一帧再加 class，让过渡真的跑起来
+          requestAnimationFrame(() => done.classList.add("shown"));
+          endObserver.disconnect();
+        }
+      },
+      { threshold: 0 }
+    );
+    endObserver.observe(sentinel);
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init, { once: true });
+  } else {
+    init();
+  }
+
+  // Swup 切页后 DOM 换了，重新绑定
+  document.addEventListener("swup:page:view", init);
+})();
+</script>
