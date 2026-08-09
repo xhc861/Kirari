@@ -238,6 +238,12 @@ function modKeyLabel(): string {
   .cp-panel {
     width: min(640px, 92vw);
     background: var(--card-bg);
+    /*
+     * 设了背景就必须设配套的前景色。本主题没有通用文字色变量
+     * （靠 Tailwind 类逐元素设），所以这里显式给出亮暗两套 ——
+     * 漏掉的话面板在深色模式下会继承默认黑字，糊在深色底上。
+     */
+    color: rgba(0, 0, 0, 0.85);
     border: 1px solid color-mix(in oklab, var(--primary) 35%, transparent);
     border-radius: 0.75rem;
     overflow: hidden;
@@ -247,6 +253,10 @@ function modKeyLabel(): string {
       0 0 40px -12px color-mix(in oklab, var(--primary) 55%, transparent);
     font-family: "JetBrains Mono Variable", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     animation: cp-pop 0.16s cubic-bezier(0.22, 0.9, 0.3, 1);
+  }
+
+  :global(.dark) .cp-panel {
+    color: rgba(255, 255, 255, 0.88);
   }
 
   .cp-input-row {
@@ -368,12 +378,17 @@ function modKeyLabel(): string {
     padding: 0.55rem 0.85rem;
     border-radius: 0.5rem;
     background: var(--card-bg);
+    color: rgba(0, 0, 0, 0.85);
     border: 1px solid color-mix(in oklab, var(--primary) 30%, transparent);
     box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18);
     font-family: "JetBrains Mono Variable", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     font-size: 0.75rem;
     animation: cp-slide-in 0.35s cubic-bezier(0.22, 0.9, 0.3, 1);
   }
+  :global(.dark) .cp-hint {
+    color: rgba(255, 255, 255, 0.88);
+  }
+
   .cp-hint-dot {
     width: 0.4rem;
     height: 0.4rem;
