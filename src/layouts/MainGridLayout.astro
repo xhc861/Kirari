@@ -5,6 +5,7 @@ import Navbar from "@components/Navbar.astro";
 import SideBar from "@components/widget/SideBar.astro";
 import type { MarkdownHeading } from "astro";
 import { Icon } from "astro-icon/components";
+import BannerWave from "../components/misc/BannerWave.astro";
 import ImageWrapper from "../components/misc/ImageWrapper.astro";
 import TOC from "../components/widget/TOC.astro";
 import { siteConfig } from "../config";
@@ -60,6 +61,9 @@ const mainPanelTop = siteConfig.banner.enable
                   src={siteConfig.banner.src} position={siteConfig.banner.position}
     >
     </ImageWrapper>
+
+    <!-- 波浪：把大图与下方内容衔接起来，避免一条硬边 -->
+    <BannerWave />
 </div>}
 
 <!-- Main content -->
