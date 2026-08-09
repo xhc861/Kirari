@@ -30,7 +30,7 @@ const { title, description } = Astro.props;
     <!-- 这类页面只供导出，不该被搜索引擎收录，否则与正文页重复 -->
     <meta name="robots" content="noindex, nofollow" />
 </head>
-<body>
+<body class="print-doc">
     <slot />
 </body>
 </html>
