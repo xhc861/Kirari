@@ -59,11 +59,24 @@
      * 一条主题色、一条色号色，也就是「叠色」。
      * 引用块直接复用站点那条、只把它染成色号色；border-left 留给段落用。
      */
-    blockquote.vk-colored {
+    /*
+     * 这里必须把两个变体都写出来，不能只写 blockquote.vk-colored ——
+     * 上面 .vk-colored.vk-outline / .vk-colored.vk-solid 是 (0,3,0)，
+     * 而 blockquote.vk-colored 只有 (0,2,1)，压不过它们，border 会留着，
+     * 于是 border 与 ::before 两条竖条紧挨着出现。
+     */
+    blockquote.vk-colored.vk-outline,
+    blockquote.vk-colored.vk-solid {
         border-left: none;
     }
     blockquote.vk-colored::before {
         background: var(--vk);
+        /*
+         * 站点那条 ::before 只给了 h-full，没设 top，靠静态位置定位。
+         * 普通引用块没有上下内边距，看不出问题；实心式加了 padding 之后
+         * 整条会被推下去，上端露出底色、下端探出底色。钉在顶上。
+         */
+        top: 0;
     }
     .vk-colored.vk-solid {
         background: color-mix(in oklab, var(--vk) 12%, transparent);
