@@ -13,7 +13,7 @@
     archive: true,
     about: true,
     friends: true,
-    gallery: true
+    dashboard: true
   };
   
   // 音乐设置
@@ -51,7 +51,17 @@
       shootingStarsEnabled = settings.shootingStarsEnabled ?? true;
       grayscaleEnabled = settings.grayscaleEnabled ?? false;
       if (settings.navbarLinks) {
-        navbarLinks = settings.navbarLinks;
+        /*
+         * 展板的路由从 /gallery/ 改成了 /dashboard/，设置键名同步更名。
+         * 老用户本地存的还是 gallery，这里做一次兼容读取，
+         * 否则他们之前关掉的展板入口会莫名其妙又冒出来。
+         */
+        const saved = settings.navbarLinks;
+        navbarLinks = {
+          ...navbarLinks,
+          ...saved,
+          dashboard: saved.dashboard ?? saved.gallery ?? true,
+        };
       }
     }
 
@@ -260,7 +270,7 @@
           
           <div class="setting-item">
             <label class="checkbox-label">
-              <input type="checkbox" bind:checked={navbarLinks.gallery} on:change={applySettings} />
+              <input type="checkbox" bind:checked={navbarLinks.dashboard} on:change={applySettings} />
               <span class="checkbox-custom"></span>
               <span class="label-text">展板</span>
             </label>
