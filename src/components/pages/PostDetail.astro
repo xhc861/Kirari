@@ -196,3 +196,11 @@ const jsonLd = {
 
 </MainGridLayout>
 
+<script is:inline define:vars={{ postTitle: entry.data.title }}>
+  /* 记下正在读的文章，首页的招呼语会引用它。只存本机，不上报。 */
+  try {
+    localStorage.setItem("kirari:last-post", postTitle);
+  } catch {
+    /* 隐私模式下写不进去，忽略即可 */
+  }
+</script>
