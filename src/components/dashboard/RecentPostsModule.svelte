@@ -79,6 +79,20 @@ function chars(n: number): string {
     color: inherit;
   }
 
+  /*
+   * 容器够宽时标题与元信息并排，不再堆两行 ——
+   * 变宽应该换来更多信息密度，而不是把同样的东西拉长。
+   */
+  @container mod (min-width: 30rem) {
+    .link {
+      flex-direction: row;
+      align-items: baseline;
+      gap: 0.7rem;
+    }
+    .title { flex: 1; -webkit-line-clamp: 1; line-clamp: 1; }
+    .meta { flex-shrink: 0; }
+  }
+
   .title {
     font-size: 0.92rem;
     font-weight: 500;
@@ -105,8 +119,9 @@ function chars(n: number): string {
 
   .when {
     flex-shrink: 0;
-    font-size: 0.75rem;
-    opacity: 0.4;
+    font-family: "JetBrains Mono Variable", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.7rem;
+    opacity: 0.42;
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
   }

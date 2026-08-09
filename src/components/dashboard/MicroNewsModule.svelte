@@ -37,8 +37,16 @@ const PRIORITY_LABEL: Record<Priority, string> = {
 /** 紧凑列表里只给这两档挂文字，其余靠圆点颜色 —— 否则每行都是徽标 */
 const LOUD: Priority[] = ["high", "doing"];
 
-/** 模块里露出几条，其余进模态框 */
-const PREVIEW_COUNT = 4;
+/**
+ * 模块里最多渲染几条。
+ *
+ * 实际露出几条由容器宽度决定（见样式里的 @container）：单列 3 条、
+ * 两列 4 条、三列 6 条。截断交给 CSS 而不是 JS —— 模块宽度会被用户在
+ * 「整理」模式里随手改，JS 不该为了数几条而去监听尺寸。
+ */
+const PREVIEW_COUNT = 6;
+/** 单列下最少露出的条数，决定「查看全部」出不出现 */
+const MIN_VISIBLE = 3;
 
 const dispatch = createEventDispatcher<{ summary: string }>();
 
@@ -191,7 +199,7 @@ onDestroy(() => {
     {/each}
   </ol>
 
-  {#if allNews.length > PREVIEW_COUNT}
+  {#if allNews.length > MIN_VISIBLE}
     <button type="button" class="more" on:click={openModal}>
       查看全部 {allNews.length} 条 →
     </button>
@@ -300,11 +308,13 @@ onDestroy(() => {
     background: var(--btn-regular-bg);
   }
 
-  /* ---------- 时间线 ---------- */
+  /* ---------- 时间线 / 分列 ---------- */
   .feed {
     list-style: none;
     margin: 0;
     padding: 0;
+    display: grid;
+    gap: 0 1.6rem;
   }
 
   .entry {
@@ -334,6 +344,41 @@ onDestroy(() => {
     margin-top: 0.4rem;
     border-radius: 50%;
     background: var(--pri, var(--sec-tint, var(--primary)));
+    box-shadow: 0 0 6px var(--pri, var(--sec-tint, var(--primary)));
+  }
+
+  /*
+   * 露出几条、排成几列，都由**容器**宽度决定，不看视口。
+   *
+   * 这一块默认是通栏头条，但用户可以在「整理」模式里把它调成三分之一栏；
+   * 那时它虽然在宽屏上，自己却很窄。视口断点判断不了这件事。
+   *
+   * 单列 3 条 / 两列 4 条 / 三列 6 条 —— 都是整行，不留半行空位。
+   */
+  .entry:nth-child(n + 4) { display: none; }
+
+  @container mod (min-width: 34rem) {
+    .feed { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .entry:nth-child(4) { display: flex; }
+  }
+  @container mod (min-width: 52rem) {
+    .feed { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .entry:nth-child(5),
+    .entry:nth-child(6) { display: flex; }
+  }
+
+  /*
+   * 一旦分了列，纵向连线就串错了 —— 视觉上从第一列底连到第二列顶，
+   * 而它们在时间上并不相邻。改用左侧一条优先级色的竖条，各自独立。
+   */
+  @container mod (min-width: 34rem) {
+    .entry::before { display: none; }
+    .entry {
+      padding: 0 0 0 0.7rem;
+      margin-bottom: 0.9rem;
+      border-left: 2px solid color-mix(in oklab, var(--pri, var(--primary)) 55%, transparent);
+    }
+    .dot { display: none; }
   }
 
   /*
@@ -365,10 +410,13 @@ onDestroy(() => {
     line-height: 1.45;
   }
 
+  /* 读数一律等宽：几条相对时间竖着排下来，字宽一致才对得齐 */
   .when {
     flex-shrink: 0;
-    font-size: 0.72rem;
-    opacity: 0.4;
+    font-family: "JetBrains Mono Variable", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.68rem;
+    font-variant-numeric: tabular-nums;
+    opacity: 0.42;
     white-space: nowrap;
   }
 

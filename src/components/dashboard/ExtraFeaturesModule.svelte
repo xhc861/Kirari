@@ -318,10 +318,20 @@ function playPronunciation(url: string, type: "uk" | "us") {
    * 两件小玩意并排。卡片去掉了 —— 它们各自只有一个标题和一个按钮，
    * 套上边框反而像两个需要认真对待的功能区。
    */
+  /*
+   * 先单列，容器够宽再分两列 —— 判据是容器不是视口：这块可以被调成
+   * 三分之一栏，那时哪怕在 4K 屏上它也只有二十来字宽，塞两列就废了。
+   */
   .extra-features-container {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 1.25rem;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1.1rem;
+  }
+  @container mod (min-width: 21rem) {
+    .extra-features-container {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1.25rem;
+    }
   }
 
   .feature {
@@ -725,11 +735,7 @@ function playPronunciation(url: string, type: "uk" | "us") {
   }
 
   @media (max-width: 768px) {
-    .extra-features-container {
-      grid-template-columns: 1fr;
-      gap: 1rem;
-    }
-
+    /* 分列已交给 @container 判断，这里只管弹窗 */
     .modal-content {
       max-height: 90vh;
     }

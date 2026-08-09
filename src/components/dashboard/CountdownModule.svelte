@@ -144,13 +144,14 @@ onDestroy(() => {
     font-variant-numeric: tabular-nums;
     color: var(--sec-tint, var(--primary));
   }
-  /* 衬线的数字比无衬线暖，倒计时看的就是这一个数 */
+  /* 等宽 + 定宽数字：天数每天变，字宽不变，数字不会左右抽动 */
   .n {
-    font-family: Georgia, "Times New Roman", serif;
+    font-family: "JetBrains Mono Variable", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     font-size: 2.1rem;
     font-weight: 700;
     line-height: 1;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.04em;
+    text-shadow: 0 0 18px color-mix(in oklab, currentColor 35%, transparent);
   }
   .u {
     font-size: 0.72rem;
