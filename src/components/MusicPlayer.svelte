@@ -18,6 +18,10 @@ let volume = 0.7;
 let isExpanded = false;
 let isMuted = false;
 let playMode: "loop" | "random" | "single" = "loop";
+/** 切歌后是否应自动续播 —— 用于等 src 就绪再播，取代原来的 setTimeout 竞态 */
+let autoPlayNext = false;
+/** 加载失败的提示，播放器里直接显示，而不是静默失败 */
+let errorMsg = "";
 
 $: currentSong = playlist[currentIndex];
 $: progress = duration > 0 ? (currentTime / duration) * 100 : 0;
@@ -91,33 +95,55 @@ onMount(() => {
 	};
 });
 
-function togglePlay() {
+/**
+ * 播放/暂停。
+ *
+ * audio.play() 返回 Promise，可能被浏览器的自动播放策略拒绝。原实现无条件
+ * 翻转 isPlaying，结果 UI 显示「播放中」但实际没声音。现在等 Promise 落定，
+ * 状态则统一由 play/pause 事件回写（见 onMount），保证与真实状态一致。
+ */
+async function togglePlay() {
 	if (!audio) return;
+	if (!currentSong?.src) {
+		errorMsg = "还没有可播放的音频";
+		return;
+	}
 
 	if (isPlaying) {
 		audio.pause();
-	} else {
-		audio.play();
+		return;
 	}
-	isPlaying = !isPlaying;
+
+	try {
+		errorMsg = "";
+		await audio.play();
+	} catch {
+		// 多数是自动播放被拦截，或音频地址无效
+		errorMsg = "播放被浏览器拦截，再点一次试试";
+	}
 }
 
 function playNext() {
-	if (playMode === "random") {
-		currentIndex = Math.floor(Math.random() * playlist.length);
+	if (playlist.length === 0) return; // 否则 % 0 会得到 NaN
+
+	if (playMode === "random" && playlist.length > 1) {
+		// 随机时避开当前曲目，否则「随机」经常听起来像单曲循环
+		let next = currentIndex;
+		while (next === currentIndex) {
+			next = Math.floor(Math.random() * playlist.length);
+		}
+		currentIndex = next;
 	} else {
 		currentIndex = (currentIndex + 1) % playlist.length;
 	}
-	setTimeout(() => {
-		if (audio) audio.play();
-	}, 100);
+	// 不再用 setTimeout 赌 src 已更新，改为等 canplay 事件
+	autoPlayNext = true;
 }
 
 function playPrev() {
+	if (playlist.length === 0) return;
 	currentIndex = (currentIndex - 1 + playlist.length) % playlist.length;
-	setTimeout(() => {
-		if (audio) audio.play();
-	}, 100);
+	autoPlayNext = true;
 }
 
 function handleTimeUpdate() {
@@ -132,21 +158,44 @@ function handleLoadedMetadata() {
 	}
 }
 
+/**
+ * src 就绪后再续播。
+ *
+ * 原来切歌用 setTimeout(100) 赌「src 已经更新好了」—— 加载慢于 100ms 时
+ * play() 会作用在尚未就绪的元素上，表现为切歌后没声音。
+ */
+function handleCanPlay() {
+	if (!autoPlayNext || !audio) return;
+	autoPlayNext = false;
+	audio.play().catch(() => {
+		errorMsg = "这首播放失败了，试试下一首";
+	});
+}
+
+function handleError() {
+	autoPlayNext = false;
+	isPlaying = false;
+	errorMsg = currentSong?.src
+		? "音频加载失败，检查一下地址"
+		: "还没有可播放的音频";
+}
+
 function handleEnded() {
 	if (playMode === "single") {
-		if (audio) audio.play();
+		if (!audio) return;
+		audio.currentTime = 0;
+		audio.play().catch(() => {});
 	} else {
 		playNext();
 	}
 }
 
 function seek(e: MouseEvent) {
-	const progressBar = e.currentTarget as HTMLElement;
-	const rect = progressBar.getBoundingClientRect();
-	const percent = (e.clientX - rect.left) / rect.width;
-	if (audio) {
-		audio.currentTime = percent * duration;
-	}
+	if (!audio || !Number.isFinite(duration) || duration <= 0) return;
+	const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+	// 点在轨道边缘时百分比会越界，必须夹紧
+	const percent = Math.min(Math.max((e.clientX - rect.left) / rect.width, 0), 1);
+	audio.currentTime = percent * duration;
 }
 
 function changeVolume(e: Event) {
@@ -201,9 +250,14 @@ onDestroy(() => {
 <audio
   bind:this={audio}
   src={currentSong?.src}
+  preload="metadata"
   on:timeupdate={handleTimeUpdate}
   on:loadedmetadata={handleLoadedMetadata}
   on:ended={handleEnded}
+  on:play={() => { isPlaying = true; errorMsg = ""; }}
+  on:pause={() => (isPlaying = false)}
+  on:canplay={handleCanPlay}
+  on:error={handleError}
 ></audio>
 
 <div class="music-player" class:expanded={isExpanded}>
@@ -258,7 +312,13 @@ onDestroy(() => {
         <!-- 歌曲信息 -->
         <div class="song-info">
           <div class="song-title">{currentSong?.title || '未选择歌曲'}</div>
-          <div class="song-artist">{currentSong?.artist || ''}</div>
+          <div class="song-artist">
+            {#if errorMsg}
+              <span class="song-error">{errorMsg}</span>
+            {:else}
+              {currentSong?.artist || ''}
+            {/if}
+          </div>
         </div>
 
         <!-- 进度条 -->
@@ -627,6 +687,14 @@ onDestroy(() => {
   
   :global(.dark) .song-title {
     color: rgba(255, 255, 255, 0.9);
+  }
+
+  /* 失败时在艺术家那一行直接说明，而不是静默 */
+  .song-error {
+    color: oklch(0.6 0.18 25);
+  }
+  :global(.dark) .song-error {
+    color: oklch(0.75 0.16 25);
   }
 
   .song-artist {
