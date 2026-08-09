@@ -48,7 +48,8 @@ Tailwind v4 下，样式入口为 `src/styles/global.css`，Tailwind 本体与�
 
 两条铁律：
 
-1. **文章只写在 `content`**，`main` 的 `src/content/posts/` 永远只有 `.gitkeep`。
+1. **内容只写在 `content`**，`main` 的 `src/content/posts/` 与 `src/content/scores/`
+   永远只有 `.gitkeep`。
 2. **代码改动先在 `main` 做，再 cherry-pick 到 `content`**；不要用 merge ——
    merge 会把 main 上「清空文章」那个提交带过去，把 `content` 的文章删掉。
 
