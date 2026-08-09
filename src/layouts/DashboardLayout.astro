@@ -11,22 +11,37 @@ interface Props {
 }
 
 const { title, lang } = Astro.props;
+
+/*
+ * 展板专属宽度。
+ *
+ * 正文页是 75rem，那是为单栏长文调的行宽；展板是六列栅格，同样的宽度下
+ * 每列只剩十几个字，成绩单那种宽表格更是只能横滑。这里把 --page-width
+ * 就地覆盖掉 —— 变量会往下继承，所以顶栏和内容一起变宽，不会错位。
+ */
+const DASH_WIDTH = "84rem";
 ---
 
 <Layout title={title} lang={lang}>
 
 <!-- Navbar -->
-<div id="top-row" class="z-50 pointer-events-none relative transition-all duration-700 max-w-[var(--page-width)] px-0 md:px-4 mx-auto">
+<div id="top-row" class="z-50 pointer-events-none relative transition-all duration-700 max-w-[var(--page-width)] px-0 md:px-4 mx-auto" style={`--page-width: ${DASH_WIDTH}`}>
     <div id="navbar-wrapper" class="pointer-events-auto sticky top-0 transition-all">
         <Navbar></Navbar>
     </div>
 </div>
 
 <!-- Main content without sidebar -->
-<div class="absolute w-full z-30 pointer-events-none" style="top: 5.5rem">
+<div class="absolute w-full z-30 pointer-events-none" style={`top: 5.5rem; --page-width: ${DASH_WIDTH}`}>
     <div class="relative max-w-[var(--page-width)] mx-auto pointer-events-auto">
         <div class="transition duration-700 w-full mx-auto px-0 md:px-4">
-            <main id="swup-container" class="transition-swup-fade overflow-hidden w-full">
+            <!--
+              overflow-x-clip 而不是 overflow-hidden：后者会让这个 <main> 变成一个
+              滚动容器，里面的 position: sticky 就只相对它定位，而它自己从不滚动 ——
+              展板的章节导航条会直接跟着页面滑走，粘不住。clip 只裁横向溢出，
+              不产生滚动容器，sticky 照常相对视口工作。
+            -->
+            <main id="swup-container" class="transition-swup-fade overflow-x-clip w-full">
                 <div id="content-wrapper" class="onload-animation">
                     <slot></slot>
                     <div class="footer onload-animation hidden lg:block mt-8">

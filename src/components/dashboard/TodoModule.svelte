@@ -1,5 +1,16 @@
 <script lang="ts">
-import { onMount } from "svelte";
+/**
+ * 待办。
+ *
+ * 原先这个模块里塞着两样不相干的东西：待办列表，和一个「答案之书」输入框。
+ * 标题写着「待办事项」，一半内容却是抽签式的娱乐 —— 现在答案之书拆成
+ * OracleModule，这里只管待办。
+ *
+ * 另外原来的复选框是 `disabled` 的：长得像能点，点下去没反应，
+ * 光标还变成 not-allowed。这是站长自己的待办，访客本来就不该勾 ——
+ * 那就别做成复选框，用状态标记表达「做完了 / 还没做」，不假装可交互。
+ */
+import { createEventDispatcher, onMount } from "svelte";
 
 interface TodoItem {
 	id: string;
@@ -7,358 +18,125 @@ interface TodoItem {
 	completed: boolean;
 }
 
-interface AnswerResponse {
-	code: number;
-	msg: string;
-	data: {
-		description_en: string;
-		description_zh: string;
-		title_en: string;
-		title_zh: string;
-	};
-	request_id: string;
-}
+const dispatch = createEventDispatcher<{ summary: string }>();
 
-let mockTodos: TodoItem[] = [];
+let todos: TodoItem[] = [];
+let loaded = false;
 
-// 从 JSON 文件动态加载待办事项
 async function loadTodos() {
 	try {
 		const response = await fetch("/todos.json", { cache: "no-store" });
-		mockTodos = await response.json();
+		const data = await response.json();
+		todos = Array.isArray(data) ? data : [];
 	} catch (error) {
 		console.error("[TodoModule] 加载失败:", error);
-		mockTodos = [];
+		todos = [];
+	} finally {
+		loaded = true;
 	}
 }
-
-let confusion = "";
-let answer: AnswerResponse["data"] | null = null;
-let loading = false;
-let error = "";
 
 onMount(() => {
-	// 确保在客户端执行
-	if (typeof window !== "undefined") {
-		loadTodos();
-	}
+	if (typeof window !== "undefined") loadTodos();
 });
 
-async function findAnswer() {
-	// 确保在客户端执行
-	if (typeof window === "undefined") return;
+$: done = todos.filter((t) => t.completed).length;
+$: total = todos.length;
+$: percent = total ? (done / total) * 100 : 0;
+/** 没做完的排前面 —— 展板要回答的是「还剩什么」，不是「做过什么」 */
+$: ordered = [...todos].sort(
+	(a, b) => Number(a.completed) - Number(b.completed),
+);
 
-	if (!confusion.trim()) {
-		error = "请输入你的困惑";
-		return;
-	}
-
-	loading = true;
-	error = "";
-	answer = null;
-
-	try {
-		const response = await fetch(
-			`https://v2.xxapi.cn/api/answers?question=${encodeURIComponent(confusion)}`,
-		);
-		const data: AnswerResponse = await response.json();
-
-		if (data.code === 200 && data.data) {
-			answer = data.data;
-		} else {
-			error = data.msg || "获取答案失败";
-		}
-	} catch (e) {
-		error = "网络请求失败，请稍后重试";
-		console.error("Failed to fetch answer:", e);
-	} finally {
-		loading = false;
-	}
-}
-
-function handleKeydown(event: KeyboardEvent) {
-	if (event.key === "Enter" && !event.shiftKey) {
-		event.preventDefault();
-		findAnswer();
-	}
-}
+$: if (loaded) dispatch("summary", total ? `${done}/${total}` : "空着");
 </script>
 
-<div class="todo-module card-base">
-  <h3 class="module-title">待办事项</h3>
-  <div class="todo-list">
-    {#each mockTodos as todo (todo.id)}
-      <div class="todo-item" class:completed={todo.completed}>
-        <input type="checkbox" checked={todo.completed} disabled />
-        <span class="todo-text">{todo.task}</span>
-      </div>
+{#if total > 0}
+  <div class="progress" role="progressbar" aria-label="待办完成度" aria-valuemin="0" aria-valuemax={total} aria-valuenow={done}>
+    <div class="progress-fill" style={`width: ${percent}%`}></div>
+  </div>
+
+  <ul class="list">
+    {#each ordered as todo (todo.id)}
+      <li class="item" class:done={todo.completed}>
+        <span class="mark" aria-hidden="true">{todo.completed ? "✓" : "○"}</span>
+        <span class="text">{todo.task}</span>
+      </li>
     {/each}
-  </div>
+  </ul>
 
-  <!-- 困惑输入区域 -->
-  <div class="confusion-section">
-    <h4 class="confusion-title">答案之书</h4>
-    <div class="input-group">
-      <input 
-        type="text" 
-        class="confusion-input" 
-        placeholder="输入你的困惑..."
-        bind:value={confusion}
-        on:keydown={handleKeydown}
-        disabled={loading}
-      />
-      <button 
-        type="button"
-        class="find-answer-btn" 
-        on:click={findAnswer}
-        disabled={loading || !confusion.trim()}
-      >
-        {loading ? '思考中...' : '找到答案'}
-      </button>
-    </div>
-
-    {#if error}
-      <div class="error-message">{error}</div>
-    {/if}
-
-    {#if answer}
-      <div class="answer-card">
-        <div class="answer-title">{answer.title_zh}</div>
-        <div class="answer-description">{answer.description_zh}</div>
-        {#if answer.title_en}
-          <div class="answer-subtitle">{answer.title_en}</div>
-        {/if}
-      </div>
-    {/if}
-  </div>
-</div>
+  {#if done === total}
+    <p class="all-done">都做完了。</p>
+  {/if}
+{:else if loaded}
+  <p class="empty">暂时没有待办。在 <code>public/todos.json</code> 里加就会出现在这儿。</p>
+{:else}
+  <p class="empty">读取中…</p>
+{/if}
 
 <style>
-  .todo-module {
-    padding: 1.5rem;
-    border-radius: var(--radius-large);
+  .progress {
+    height: 3px;
+    border-radius: 3px;
+    background: var(--line-divider);
+    overflow: hidden;
+    margin-bottom: 0.75rem;
+  }
+  .progress-fill {
     height: 100%;
-    display: flex;
-    flex-direction: column;
-  }
-
-  .module-title {
-    font-size: 1.25rem;
-    font-weight: 600;
-    margin-bottom: 1rem;
-    color: var(--primary);
-  }
-
-  :global(.dark) .module-title {
-    color: oklch(0.75 0.14 var(--hue));
-  }
-
-  .todo-list {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    margin-bottom: 1.5rem;
-  }
-
-  .todo-item {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem;
-    border-radius: 0.375rem;
-    transition: background-color 0.2s;
-  }
-
-  .todo-item:hover {
-    background: var(--btn-card-bg-hover);
-  }
-
-  .todo-item.completed .todo-text {
-    text-decoration: line-through;
-    opacity: 0.6;
-  }
-
-  input[type="checkbox"] {
-    appearance: none;
-    width: 1.25rem;
-    height: 1.25rem;
-    border: 2px solid var(--primary);
-    border-radius: 0.25rem;
-    cursor: not-allowed;
-    position: relative;
-    transition: all 0.2s;
-  }
-
-  input[type="checkbox"]:checked {
+    border-radius: 3px;
     background: var(--primary);
+    transition: width 0.4s cubic-bezier(0.22, 0.8, 0.3, 1);
   }
 
-  input[type="checkbox"]:checked::after {
-    content: '';
-    position: absolute;
-    left: 0.3rem;
-    top: 0.1rem;
-    width: 0.4rem;
-    height: 0.7rem;
-    border: solid white;
-    border-width: 0 2px 2px 0;
-    transform: rotate(45deg);
+  .list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
   }
 
-  .todo-text {
-    flex: 1;
+  .item {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    line-height: 1.5;
   }
 
-  :global(.dark) .todo-text {
-    color: rgba(255, 255, 255, 0.9);
-  }
-
-  /* 困惑输入区域 */
-  .confusion-section {
-    margin-top: auto;
-    padding-top: 1.5rem;
-    border-top: 2px solid var(--line-divider);
-  }
-
-  .confusion-title {
-    font-size: 1.125rem;
-    font-weight: 600;
+  .mark {
+    flex-shrink: 0;
+    width: 1em;
+    font-size: 0.85em;
     color: var(--primary);
-    margin-bottom: 1rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
   }
 
-  :global(.dark) .confusion-title {
-    color: oklch(0.75 0.14 var(--hue));
-  }
+  .item.done { opacity: 0.45; }
+  .item.done .text { text-decoration: line-through; }
+  .item.done .mark { color: inherit; }
 
-  .confusion-title::before {
-    content: '📖';
-    font-size: 1.25rem;
-  }
-
-  .input-group {
-    display: flex;
-    gap: 0.5rem;
-  }
-
-  .confusion-input {
-    flex: 1;
-    padding: 0.625rem 0.875rem;
-    border: 1px solid var(--line-divider);
-    border-radius: 0.5rem;
-    background: var(--card-bg);
-    font-size: 0.875rem;
-    transition: all 0.2s;
-  }
-
-  :global(.dark) .confusion-input {
-    color: rgba(255, 255, 255, 0.9);
-  }
-
-  .confusion-input:focus {
-    outline: none;
-    border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(var(--primary-rgb, 88, 88, 88), 0.1);
-  }
-
-  .confusion-input:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-
-  .confusion-input::placeholder {
+  .all-done {
+    margin: 0.75rem 0 0;
+    font-size: 0.8rem;
     opacity: 0.5;
   }
 
-  :global(.dark) .confusion-input::placeholder {
-    color: rgba(255, 255, 255, 0.6);
-  }
-
-  .find-answer-btn {
-    padding: 0.625rem 1.25rem;
-    background: var(--primary);
-    color: white;
-    border: none;
-    border-radius: 0.5rem;
-    font-size: 0.875rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s;
-    white-space: nowrap;
-  }
-
-  .find-answer-btn:hover:not(:disabled) {
-    opacity: 0.9;
-    transform: translateY(-1px);
-  }
-
-  .find-answer-btn:active:not(:disabled) {
-    transform: translateY(0);
-  }
-
-  .find-answer-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  .error-message {
-    margin-top: 0.5rem;
-    padding: 0.5rem;
-    background: rgba(239, 68, 68, 0.1);
-    color: rgb(239, 68, 68);
-    border-radius: 0.375rem;
-    font-size: 0.875rem;
-  }
-
-  .answer-card {
-    margin-top: 0.75rem;
-    padding: 1rem;
-    background: var(--btn-card-bg-hover);
-    border-radius: 0.5rem;
-    border-left: 3px solid var(--primary);
-  }
-
-  .answer-title {
-    font-size: 1rem;
-    font-weight: 600;
-    color: var(--primary);
-    margin-bottom: 0.5rem;
-  }
-
-  :global(.dark) .answer-title {
-    color: oklch(0.75 0.14 var(--hue));
-  }
-
-  .answer-description {
-    font-size: 0.875rem;
+  .empty {
+    margin: 0;
+    font-size: 0.85rem;
     line-height: 1.6;
+    opacity: 0.5;
+  }
+  .empty code {
+    font-size: 0.9em;
+    padding: 0.05rem 0.25rem;
+    border-radius: 0.25rem;
+    background: var(--btn-regular-bg);
   }
 
-  :global(.dark) .answer-description {
-    color: rgba(255, 255, 255, 0.9);
-  }
-
-  .answer-subtitle {
-    margin-top: 0.5rem;
-    font-size: 0.8125rem;
-    opacity: 0.6;
-    font-style: italic;
-  }
-
-  :global(.dark) .answer-subtitle {
-    color: rgba(255, 255, 255, 0.7);
-  }
-
-  @media (max-width: 768px) {
-    .input-group {
-      flex-direction: column;
-    }
-
-    .find-answer-btn {
-      width: 100%;
-    }
+  @media (prefers-reduced-motion: reduce) {
+    .progress-fill { transition: none; }
   }
 </style>

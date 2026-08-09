@@ -2,20 +2,33 @@
 /**
  * 展板里的写作统计。
  *
- * 只是把已有的 StatsPanel 搬进展板，本身不做任何计算 —— 数字全部在构建期由
- * utils/stats-utils.ts 算好，经 dashboard.astro 作为 props 传进来。
- *
- * 不再套一层 card-base：StatsPanel 内部每张图表已经各自是一张卡片，
- * 外面再包一层会变成卡中卡。
+ * 本身不做任何计算 —— 数字全部在构建期由 utils/stats-utils.ts 算好，
+ * 经 dashboard.astro 作为 props 传进来。
  */
-import StatsPanel from "../stats/StatsPanel.svelte";
+
 import type { WritingStats } from "@utils/stats-utils";
+import { createEventDispatcher } from "svelte";
+import StatsPanel from "../stats/StatsPanel.svelte";
 
 export let stats: WritingStats | null = null;
+
+const dispatch = createEventDispatcher<{ summary: string }>();
+
+function chars(n: number): string {
+	return n >= 10000 ? `${(n / 10000).toFixed(1)} 万字` : `${n} 字`;
+}
+
+/** 折叠着也知道这站写了多少 */
+$: dispatch(
+	"summary",
+	stats && stats.summary.posts > 0
+		? `${stats.summary.posts} 篇 · ${chars(stats.summary.chars)}`
+		: "还没有",
+);
 </script>
 
 {#if stats && stats.summary.posts > 0}
-  <p class="stats-lead">
+  <p class="lead">
     从 {stats.summary.firstDate} 写到现在，{stats.summary.spanDays} 天里攒下
     {stats.summary.posts} 篇。
   </p>
@@ -28,18 +41,18 @@ export let stats: WritingStats | null = null;
     tags={stats.tags}
   />
 {:else}
-  <p class="stats-empty">还没有文章，写第一篇之后这里就会有东西了。</p>
+  <p class="empty">还没有文章，写第一篇之后这里就会有东西了。</p>
 {/if}
 
 <style>
-  .stats-lead {
+  .lead {
     font-size: 0.85rem;
-    opacity: 0.7;
+    opacity: 0.55;
     margin: 0 0 0.85rem;
   }
-  .stats-empty {
-    font-size: 0.875rem;
-    opacity: 0.6;
+  .empty {
+    font-size: 0.85rem;
+    opacity: 0.5;
     margin: 0;
   }
 </style>

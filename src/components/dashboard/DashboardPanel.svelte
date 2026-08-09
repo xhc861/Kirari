@@ -1,33 +1,47 @@
 <script lang="ts">
-import { onMount, tick } from "svelte";
+/**
+ * 展板。
+ *
+ * 上一版是「分区标签 + 一列等大的卡片」，有三个治不好的毛病：一次只看得见三分之一；
+ * 每块权重相同，时钟和成绩单一样大；每张卡顶着四个管理按钮，控件比内容还多。
+ *
+ * 这一版整页一口气滚完 —— 分区退化成章节标题，模块按内容密度占不同宽度，
+ * 卡片边框换成「小标题 + 一条细线」。管理动作全部收进「整理」模式：
+ * 平时是一张干净的版面，要收拾的时候才让把手和按钮浮出来。
+ */
+
+import type { RecentPost, WritingStats } from "@utils/stats-utils";
+import { onDestroy, onMount, tick } from "svelte";
 import UABadge from "../UABadge.svelte";
-import CalendarModule from "./CalendarModule.svelte";
 import CountdownModule from "./CountdownModule.svelte";
 import DashboardHeader from "./DashboardHeader.svelte";
+import {
+	loadCollapsed,
+	loadSizes,
+	type ModuleDef,
+	type ModuleId,
+	type ModuleSize,
+	orderedModules,
+	resetLayout,
+	SECTIONS,
+	type SectionId,
+	saveCollapsed,
+	saveOrder,
+	saveSizes,
+	sectionOf,
+} from "./dashboard-layout";
 import ExtraFeaturesModule from "./ExtraFeaturesModule.svelte";
 import MicroNewsModule from "./MicroNewsModule.svelte";
 import ModuleShell from "./ModuleShell.svelte";
+import OracleModule from "./OracleModule.svelte";
+import RecentPostsModule from "./RecentPostsModule.svelte";
 import ScoreboardModule from "./ScoreboardModule.svelte";
 import StatsModule from "./StatsModule.svelte";
 import TodoModule from "./TodoModule.svelte";
-import {
-	type ModuleDef,
-	type ModuleId,
-	SECTIONS,
-	type SectionId,
-	loadCollapsed,
-	loadSection,
-	orderedModules,
-	resetLayout,
-	saveCollapsed,
-	saveOrder,
-	saveSection,
-	sectionOf,
-} from "./dashboard-layout";
-import type { WritingStats } from "@utils/stats-utils";
 
-/** 写作统计，构建期算好由 dashboard.astro 传入 */
+/** 写作统计与最近文章，构建期算好由 dashboard.astro 传入 */
 export let stats: WritingStats | null = null;
+export let recentPosts: RecentPost[] = [];
 
 interface Countdown {
 	id: string;
@@ -40,19 +54,54 @@ let countdowns: Countdown[] = [];
 let countdownsChecked = false;
 $: hasCountdowns = countdowns.length > 0;
 
-let currentSection: SectionId = "daily";
+let editing = false;
 let collapsed: Set<ModuleId> = new Set();
-/** 各分区的模块顺序，切分区时按需取 */
+let sizes: Partial<Record<ModuleId, ModuleSize>> = {};
 let modulesBySection: Record<SectionId, ModuleDef[]> = {
 	daily: [],
 	content: [],
 	tools: [],
 };
 
-$: visibleModules = (modulesBySection[currentSection] ?? []).filter(
-	// 倒计时没有数据时整块不出现，别摆一个空壳
-	(m) => m.id !== "countdown" || (countdownsChecked && hasCountdowns),
-);
+/**
+ * 各模块上报的一句摘要，显示在标题右侧。
+ *
+ * 数据都在模块内部（条数、完成度、有没有公布），父组件不该为了显示一个数字
+ * 再请求一遍，所以走事件上报。
+ */
+let summaries: Partial<Record<ModuleId, string>> = {};
+function setSummary(id: ModuleId, text: string) {
+	if (summaries[id] === text) return;
+	summaries = { ...summaries, [id]: text };
+}
+
+/**
+ * 模块自报的标题，覆盖 MODULES 里的默认值。
+ *
+ * 目前只有成绩单用得上 —— 它的标题写在 scoreboard.json 里，改成「中考成绩单」
+ * 这类叫法应当生效。上一版把模块自带的标题一律隐藏，那个字段就哑了。
+ */
+let titles: Partial<Record<ModuleId, string>> = {};
+function setTitle(id: ModuleId, text: string) {
+	if (titles[id] === text) return;
+	titles = { ...titles, [id]: text };
+}
+
+/*
+ * 倒计时没有数据时整块不出现，别摆一个空壳。
+ *
+ * 判断条件必须**写在响应式语句里**，不能抽成具名函数：Svelte 是按语句中出现的
+ * 标识符收集依赖的，抽走之后 countdownsChecked / hasCountdowns 就不再是这条
+ * 语句的依赖，倒计时数据回来了列表也不会重算，那一块永远不出现。
+ * 下面 sizes 的用法同理，所以模板里直接写 sizes[m.id]，没有包一层 sizeOf()。
+ */
+$: showCountdown = countdownsChecked && hasCountdowns;
+$: keep = (m: ModuleDef) => m.id !== "countdown" || showCountdown;
+$: visibleBySection = {
+	daily: (modulesBySection.daily ?? []).filter(keep),
+	content: (modulesBySection.content ?? []).filter(keep),
+	tools: (modulesBySection.tools ?? []).filter(keep),
+} as Record<SectionId, ModuleDef[]>;
 
 function reloadOrder() {
 	modulesBySection = {
@@ -75,11 +124,6 @@ async function loadCountdowns() {
 	}
 }
 
-function selectSection(id: SectionId) {
-	currentSection = id;
-	saveSection(id);
-}
-
 function toggleCollapse(id: ModuleId) {
 	const next = new Set(collapsed);
 	if (next.has(id)) next.delete(id);
@@ -88,16 +132,21 @@ function toggleCollapse(id: ModuleId) {
 	saveCollapsed(next);
 }
 
+function setSize(id: ModuleId, size: ModuleSize) {
+	sizes = { ...sizes, [id]: size };
+	saveSizes(sizes);
+}
+
 /**
  * 上移 / 下移。
  *
- * 按**可见**列表定位、在完整列表上换位：分区里可能有被过滤掉的模块
+ * 按**可见**列表定位、在完整列表上换位：章节里可能有被过滤掉的模块
  * （比如没有数据时的倒计时）。若直接在完整列表上按下标加减，点一下会和那个
  * 隐藏模块换位置，界面上毫无变化，看起来就是按钮坏了。
  */
-function move(id: ModuleId, delta: -1 | 1) {
-	const full = [...(modulesBySection[currentSection] ?? [])];
-	const vis = visibleModules;
+function move(section: SectionId, id: ModuleId, delta: -1 | 1) {
+	const full = [...(modulesBySection[section] ?? [])];
+	const vis = visibleBySection[section] ?? [];
 	const vFrom = vis.findIndex((m) => m.id === id);
 	const vTo = vFrom + delta;
 	if (vFrom < 0 || vTo < 0 || vTo >= vis.length) return;
@@ -107,9 +156,9 @@ function move(id: ModuleId, delta: -1 | 1) {
 	if (a < 0 || b < 0) return;
 
 	[full[a], full[b]] = [full[b], full[a]];
-	modulesBySection = { ...modulesBySection, [currentSection]: full };
+	modulesBySection = { ...modulesBySection, [section]: full };
 	saveOrder(
-		currentSection,
+		section,
 		full.map((m) => m.id),
 	);
 }
@@ -118,17 +167,18 @@ function move(id: ModuleId, delta: -1 | 1) {
 let dragId: ModuleId | null = null;
 let overId: ModuleId | null = null;
 
-function onDrop() {
+function onDrop(section: SectionId) {
 	if (!dragId || !overId || dragId === overId) return;
-	const list = [...(modulesBySection[currentSection] ?? [])];
+	const list = [...(modulesBySection[section] ?? [])];
 	const from = list.findIndex((m) => m.id === dragId);
 	const to = list.findIndex((m) => m.id === overId);
+	// 跨章节拖拽不处理：章节是语义分组，拖过去反而让人找不着
 	if (from < 0 || to < 0) return;
 	const [moved] = list.splice(from, 1);
 	list.splice(to, 0, moved);
-	modulesBySection = { ...modulesBySection, [currentSection]: list };
+	modulesBySection = { ...modulesBySection, [section]: list };
 	saveOrder(
-		currentSection,
+		section,
 		list.map((m) => m.id),
 	);
 	dragId = null;
@@ -138,34 +188,55 @@ function onDrop() {
 function onReset() {
 	resetLayout();
 	collapsed = new Set();
-	currentSection = "daily";
+	sizes = {};
 	reloadOrder();
 }
 
-/** 标签栏方向键切换，符合 tablist 的键盘预期 */
-function onTabKey(e: KeyboardEvent) {
-	const i = SECTIONS.findIndex((s) => s.id === currentSection);
-	if (e.key === "ArrowRight") selectSection(SECTIONS[(i + 1) % SECTIONS.length].id);
-	else if (e.key === "ArrowLeft")
-		selectSection(SECTIONS[(i - 1 + SECTIONS.length) % SECTIONS.length].id);
-	else return;
-	e.preventDefault();
+/* ---------- 章节导航：滚动到哪个章节，哪个亮 ---------- */
+let activeSection: SectionId = "daily";
+let observer: IntersectionObserver | null = null;
+
+function scrollToSection(id: SectionId) {
+	document
+		.getElementById(`chapter-${id}`)
+		?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function observeChapters() {
+	observer?.disconnect();
+	if (typeof IntersectionObserver === "undefined") return;
+	observer = new IntersectionObserver(
+		(entries) => {
+			for (const e of entries) {
+				if (!e.isIntersecting) continue;
+				const id = e.target.id.replace("chapter-", "") as SectionId;
+				if (SECTIONS.some((s) => s.id === id)) activeSection = id;
+			}
+		},
+		// 顶部留出粘性导航条的高度，让高亮在章节标题压到导航条时才切换
+		{ rootMargin: "-30% 0px -60% 0px" },
+	);
+	for (const s of SECTIONS) {
+		const el = document.getElementById(`chapter-${s.id}`);
+		if (el) observer.observe(el);
+	}
 }
 
 onMount(async () => {
 	reloadOrder();
 	collapsed = loadCollapsed();
-	currentSection = loadSection();
+	sizes = loadSizes();
 	loadCountdowns();
 
+	await tick();
+	observeChapters();
+
 	/*
-	 * /stats/ 现在 301 到 /dashboard/#stats。统计藏在「内容」分区里，
-	 * 光有锚点滚不过去 —— 先切到它所在的分区、展开它，再滚。
+	 * /stats/ 现在 301 到 /dashboard/#stats。整页平铺之后不必再切分区，
+	 * 但模块可能是收起来的 —— 先展开再滚。
 	 */
 	const hash = location.hash.replace("#", "") as ModuleId;
-	const target = hash ? sectionOf(hash) : null;
-	if (target) {
-		currentSection = target;
+	if (hash && sectionOf(hash)) {
 		if (collapsed.has(hash)) {
 			const next = new Set(collapsed);
 			next.delete(hash);
@@ -176,167 +247,276 @@ onMount(async () => {
 		document.getElementById(hash)?.scrollIntoView({ block: "start" });
 	}
 });
+
+onDestroy(() => observer?.disconnect());
 </script>
 
-<div class="dashboard-container">
-  <!-- 头部：时段问候 + 日期 + 走动的时钟。不参与分区，常驻顶部 -->
-  <div class="dash-section" style="--enter-order: 0">
-    <DashboardHeader />
-  </div>
+<div class="dashboard" class:is-editing={editing}>
+  <DashboardHeader />
 
-  <div class="section-bar dash-section" style="--enter-order: 1">
-    <div class="tabs" role="tablist" aria-label="展板分区" on:keydown={onTabKey}>
+  <nav class="chapters" aria-label="展板章节">
+    <div class="chapter-links">
       {#each SECTIONS as s (s.id)}
         <button
           type="button"
-          role="tab"
-          class="tab"
-          class:active={currentSection === s.id}
-          aria-selected={currentSection === s.id}
-          tabindex={currentSection === s.id ? 0 : -1}
-          on:click={() => selectSection(s.id)}
+          class="chapter-link"
+          class:active={activeSection === s.id}
+          on:click={() => scrollToSection(s.id)}
         >{s.name}</button>
       {/each}
     </div>
 
-    <button type="button" class="reset-btn" on:click={onReset} title="恢复默认的分区、顺序与折叠状态">
-      重置布局
-    </button>
-  </div>
+    <div class="chapter-actions">
+      {#if editing}
+        <button type="button" class="ghost-btn" on:click={onReset}>恢复默认</button>
+      {/if}
+      <button
+        type="button"
+        class="ghost-btn tidy"
+        class:on={editing}
+        aria-pressed={editing}
+        on:click={() => (editing = !editing)}
+      >{editing ? "完成" : "整理"}</button>
+    </div>
+  </nav>
 
-  <div class="modules" role="tabpanel">
-    {#each visibleModules as m, i (m.id)}
-      <div id={m.id} class="dash-section" style={`--enter-order: ${i + 2}`}>
-        <ModuleShell
-          title={m.title}
-          collapsed={collapsed.has(m.id)}
-          isFirst={i === 0}
-          isLast={i === visibleModules.length - 1}
-          dropTarget={overId === m.id && dragId !== m.id}
-          on:toggle={() => toggleCollapse(m.id)}
-          on:move={(e) => move(m.id, e.detail)}
-          on:dragstart={() => (dragId = m.id)}
-          on:dragend={() => { dragId = null; overId = null; }}
-          on:dragover={() => (overId = m.id)}
-          on:drop={onDrop}
-        >
-          {#if m.id === "calendar"}
-            <CalendarModule />
-          {:else if m.id === "countdown"}
-            <CountdownModule {countdowns} />
-          {:else if m.id === "todo"}
-            <TodoModule />
-          {:else if m.id === "stats"}
-            <StatsModule {stats} />
-          {:else if m.id === "micronews"}
-            <MicroNewsModule />
-          {:else if m.id === "scoreboard"}
-            <ScoreboardModule />
-          {:else if m.id === "extras"}
-            <ExtraFeaturesModule />
-          {:else if m.id === "ua"}
-            <UABadge />
-          {/if}
-        </ModuleShell>
-      </div>
-    {/each}
-  </div>
+  {#if editing}
+    <p class="tidy-hint">
+      拖动 ⠿ 或用 ↑↓ 调顺序，窄 / 半 / 通栏 调宽度，▾ 收起不常看的。改动只存在这台设备上。
+    </p>
+  {/if}
+
+  {#each SECTIONS as s, si (s.id)}
+    {@const list = visibleBySection[s.id] ?? []}
+    {#if list.length}
+      <section class="chapter" id={`chapter-${s.id}`}>
+        <div class="chapter-head">
+          <h2 class="chapter-title">{s.name}</h2>
+          <span class="chapter-hint">{s.hint}</span>
+          <span class="chapter-rule" aria-hidden="true"></span>
+        </div>
+
+        <div class="grid">
+          {#each list as m, i (m.id)}
+            <div
+              id={m.id}
+              class="cell"
+              data-size={sizes[m.id] ?? m.size}
+              style={`--enter-order: ${si * 3 + i}`}
+            >
+              <ModuleShell
+                title={titles[m.id] ?? m.title}
+                badge={summaries[m.id] ?? ""}
+                collapsed={collapsed.has(m.id)}
+                size={sizes[m.id] ?? m.size}
+                bare={m.bare}
+                {editing}
+                isFirst={i === 0}
+                isLast={i === list.length - 1}
+                dropTarget={overId === m.id && dragId !== m.id}
+                on:toggle={() => toggleCollapse(m.id)}
+                on:move={(e) => move(s.id, m.id, e.detail)}
+                on:resize={(e) => setSize(m.id, e.detail)}
+                on:dragstart={() => (dragId = m.id)}
+                on:dragend={() => { dragId = null; overId = null; }}
+                on:dragover={() => (overId = m.id)}
+                on:drop={() => onDrop(s.id)}
+              >
+                {#if m.id === "todo"}
+                  <TodoModule on:summary={(e) => setSummary("todo", e.detail)} />
+                {:else if m.id === "countdown"}
+                  <CountdownModule {countdowns} on:summary={(e) => setSummary("countdown", e.detail)} />
+                {:else if m.id === "oracle"}
+                  <OracleModule />
+                {:else if m.id === "recent"}
+                  <RecentPostsModule posts={recentPosts} on:summary={(e) => setSummary("recent", e.detail)} />
+                {:else if m.id === "micronews"}
+                  <MicroNewsModule on:summary={(e) => setSummary("micronews", e.detail)} />
+                {:else if m.id === "stats"}
+                  <StatsModule {stats} on:summary={(e) => setSummary("stats", e.detail)} />
+                {:else if m.id === "scoreboard"}
+                  <ScoreboardModule
+                    on:summary={(e) => setSummary("scoreboard", e.detail)}
+                    on:title={(e) => setTitle("scoreboard", e.detail)}
+                  />
+                {:else if m.id === "extras"}
+                  <ExtraFeaturesModule />
+                {:else if m.id === "ua"}
+                  <UABadge />
+                {/if}
+              </ModuleShell>
+            </div>
+          {/each}
+        </div>
+      </section>
+    {/if}
+  {/each}
 </div>
 
 <style>
-  .dashboard-container {
+  .dashboard {
     width: 100%;
     max-width: 100%;
     display: flex;
     flex-direction: column;
-    gap: 1.25rem;
+    gap: 1.5rem;
   }
 
-  /*
-   * 入场编排：模块依次浮现，而不是整屏同时砸下来。
-   * 每块延迟 70ms，最后一块也在半秒内到位，不会让人等。
-   */
-  .dash-section {
-    animation: dash-enter 460ms cubic-bezier(0.22, 0.8, 0.3, 1) backwards;
-    animation-delay: calc(var(--enter-order, 0) * 70ms);
-  }
-
-  @keyframes dash-enter {
-    from { opacity: 0; transform: translateY(14px); }
-    to   { opacity: 1; transform: none; }
-  }
-
-  .section-bar {
+  /* ---------- 章节导航 ---------- */
+  .chapters {
+    position: sticky;
+    /* 顶栏高 4.5rem，压在它下面一点 */
+    top: 4.75rem;
+    z-index: 20;
     display: flex;
     align-items: center;
     gap: 0.75rem;
     flex-wrap: wrap;
-  }
-
-  .tabs {
-    display: flex;
-    gap: 0.25rem;
-    padding: 0.25rem;
+    padding: 0.35rem 0.5rem;
+    margin: 0 -0.5rem;
     border-radius: 9999px;
-    background: var(--btn-regular-bg);
+    background: color-mix(in oklab, var(--page-bg, var(--card-bg)) 86%, transparent);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
   }
 
-  .tab {
-    padding: 0.35rem 1rem;
+  .chapter-links {
+    display: flex;
+    gap: 0.15rem;
+  }
+
+  .chapter-link {
+    padding: 0.25rem 0.75rem;
     border: none;
     border-radius: 9999px;
     background: transparent;
-    color: var(--btn-content);
+    color: rgba(0, 0, 0, 0.45);
+    font-size: 0.85rem;
     font-weight: 600;
-    font-size: 0.9rem;
     cursor: pointer;
     transition: background 0.18s ease, color 0.18s ease;
   }
-  .tab:hover { background: var(--btn-plain-bg-hover); }
-  .tab.active {
-    background: var(--card-bg);
-    color: var(--primary);
+  :global(.dark) .chapter-link { color: rgba(255, 255, 255, 0.45); }
+  .chapter-link:hover { background: var(--btn-plain-bg-hover); }
+  .chapter-link.active { color: var(--primary); }
+
+  .chapter-actions {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
   }
 
-  .reset-btn {
-    margin-left: auto;
-    padding: 0.3rem 0.8rem;
+  .ghost-btn {
+    padding: 0.25rem 0.8rem;
     border: 1px solid var(--line-divider);
     border-radius: 9999px;
     background: transparent;
     color: inherit;
-    opacity: 0.55;
-    font-size: 0.8rem;
+    opacity: 0.6;
+    font-size: 0.78rem;
     cursor: pointer;
-    transition: opacity 0.15s ease, background 0.15s ease;
+    transition: opacity 0.15s ease, background 0.15s ease, color 0.15s ease;
   }
-  .reset-btn:hover { opacity: 1; background: var(--btn-plain-bg-hover); }
+  .ghost-btn:hover { opacity: 1; background: var(--btn-plain-bg-hover); }
+  .ghost-btn.tidy.on {
+    opacity: 1;
+    border-color: transparent;
+    background: var(--primary);
+    color: white;
+  }
 
-  .modules {
+  .tidy-hint {
+    margin: -0.75rem 0 0;
+    font-size: 0.78rem;
+    line-height: 1.6;
+    opacity: 0.55;
+  }
+
+  /* ---------- 章节 ---------- */
+  .chapter {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: 1.1rem;
+    scroll-margin-top: 7rem;
   }
 
-  /* 卡片对指针有反应：轻微抬起 + 阴影，避免整页毫无回馈 */
-  .dashboard-container :global(.card-base) {
-    transition: transform 0.24s ease, box-shadow 0.24s ease;
+  .chapter-head {
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
   }
-  .dashboard-container :global(.card-base:hover) {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.07);
+
+  .chapter-title {
+    margin: 0;
+    font-size: 1.35rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    line-height: 1.2;
   }
-  :global(.dark) .dashboard-container :global(.card-base:hover) {
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+
+  .chapter-hint {
+    font-size: 0.8rem;
+    opacity: 0.45;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .chapter-rule {
+    flex: 1;
+    min-width: 1rem;
+    height: 1px;
+    background: var(--line-divider);
+  }
+
+  /*
+   * 六列栅格。模块按内容密度认领份额，而不是一律等宽 ——
+   * 待办两行字占三分之一，成绩单那张宽表格占通栏。
+   */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 1.75rem 2.25rem;
+    align-items: start;
+  }
+
+  /* 顶栏 + 粘性章节条约 7rem，锚点跳转（/stats/ → #stats）时别被压在下面 */
+  .cell { min-width: 0; scroll-margin-top: 7.5rem; }
+  .cell[data-size="narrow"] { grid-column: span 2; }
+  .cell[data-size="half"]   { grid-column: span 3; }
+  .cell[data-size="full"]   { grid-column: span 6; }
+
+  /* 中屏：窄块两个并排，其余通栏 */
+  @media (max-width: 1023px) {
+    .grid { gap: 1.5rem; }
+    .cell[data-size="narrow"] { grid-column: span 3; }
+    .cell[data-size="half"]   { grid-column: span 6; }
+  }
+
+  /* 窄屏：一律单列 */
+  @media (max-width: 640px) {
+    .chapters { top: 4.5rem; }
+    .chapter-title { font-size: 1.15rem; }
+    .chapter-hint { display: none; }
+    .cell[data-size="narrow"] { grid-column: span 6; }
+  }
+
+  /*
+   * 入场编排：章节依次浮现，而不是整屏同时砸下来。
+   * 每块延迟 60ms，最后一块也在半秒内到位，不会让人等。
+   */
+  .cell {
+    animation: dash-enter 440ms cubic-bezier(0.22, 0.8, 0.3, 1) backwards;
+    animation-delay: calc(var(--enter-order, 0) * 60ms);
+  }
+  @keyframes dash-enter {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: none; }
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .dash-section { animation: none; }
-    .dashboard-container :global(.card-base),
-    .dashboard-container :global(.card-base:hover) {
-      transition: none;
-      transform: none;
-    }
-    .tab, .reset-btn { transition: none; }
+    .cell { animation: none; }
+    .chapter-link, .ghost-btn { transition: none; }
   }
 </style>

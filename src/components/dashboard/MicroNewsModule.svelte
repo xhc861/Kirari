@@ -1,5 +1,21 @@
 <script lang="ts">
-import { onMount, onDestroy } from "svelte";
+/**
+ * 微新闻。
+ *
+ * 两处内容上的毛病：
+ *
+ *   时间写死成 `2026-02-05 21:57`，看一眼不知道那是上周还是半年前，得心算；
+ *   「一般」那档用 rgb(251,191,36) 的亮黄，在浅色底上几乎读不出来。
+ *
+ * 列表改成时间线：圆点的颜色就是优先级，不必每条都挂一个文字徽标 ——
+ * 半栏宽度里，标题才是要读的东西。绝对时间收进 title 提示，需要时悬停可见。
+ * 完整列表连同筛选与分页仍在模态框里，那是「翻旧账」的场景，值得占满屏。
+ */
+
+import { relativeDay } from "@utils/date-utils";
+import { createEventDispatcher, onDestroy, onMount } from "svelte";
+
+type Priority = "high" | "medium" | "low" | "doing";
 
 interface MicroNews {
 	id: string;
@@ -8,11 +24,26 @@ interface MicroNews {
 	time: string;
 	date: string;
 	sender: string;
-	priority: "high" | "medium" | "low" | "doing";
+	priority: Priority;
 }
 
+const PRIORITY_LABEL: Record<Priority, string> = {
+	high: "重要",
+	medium: "一般",
+	low: "普通",
+	doing: "正在做",
+};
+
+/** 紧凑列表里只给这两档挂文字，其余靠圆点颜色 —— 否则每行都是徽标 */
+const LOUD: Priority[] = ["high", "doing"];
+
+/** 模块里露出几条，其余进模态框 */
+const PREVIEW_COUNT = 4;
+
+const dispatch = createEventDispatcher<{ summary: string }>();
+
 let allNews: MicroNews[] = [];
-let displayNews: MicroNews[] = [];
+let loaded = false;
 let showModal = false;
 let modalElement: HTMLDivElement;
 
@@ -23,10 +54,9 @@ let selectedDateRange = "all";
 let currentPage = 1;
 let itemsPerPage = 6;
 
-// 获取唯一的发送者列表
-$: senders = ["all", ...new Set(allNews.map((n) => n.sender))];
+$: senders = [...new Set(allNews.map((n) => n.sender))];
+$: preview = allNews.slice(0, PREVIEW_COUNT);
 
-// 筛选后的新闻
 $: filteredNews = allNews.filter((news) => {
 	const senderMatch =
 		selectedSender === "all" || news.sender === selectedSender;
@@ -35,12 +65,9 @@ $: filteredNews = allNews.filter((news) => {
 
 	let dateMatch = true;
 	if (selectedDateRange !== "all") {
-		const newsDate = new Date(news.date);
-		const today = new Date();
 		const diffDays = Math.floor(
-			(today.getTime() - newsDate.getTime()) / (1000 * 60 * 60 * 24),
+			(Date.now() - new Date(news.date).getTime()) / 86400000,
 		);
-
 		if (selectedDateRange === "today") dateMatch = diffDays === 0;
 		else if (selectedDateRange === "week") dateMatch = diffDays <= 7;
 		else if (selectedDateRange === "month") dateMatch = diffDays <= 30;
@@ -49,24 +76,26 @@ $: filteredNews = allNews.filter((news) => {
 	return senderMatch && priorityMatch && dateMatch;
 });
 
-// 分页计算
-$: totalPages = Math.ceil(filteredNews.length / itemsPerPage);
+$: totalPages = Math.max(1, Math.ceil(filteredNews.length / itemsPerPage));
 $: paginatedNews = filteredNews.slice(
 	(currentPage - 1) * itemsPerPage,
 	currentPage * itemsPerPage,
 );
 
-// 重置页码当筛选条件改变
-$: if (selectedSender || selectedPriority || selectedDateRange) {
+// 筛选条件变了就回到第一页，否则会停在一个已经不存在的页码上
+$: if (
+	selectedSender ||
+	selectedPriority ||
+	selectedDateRange ||
+	itemsPerPage
+) {
 	currentPage = 1;
 }
 
-// 从 JSON 文件动态加载微新闻数据
 async function loadMicroNews() {
 	try {
 		const response = await fetch("/micro-news.json", { cache: "no-store" });
 		const data = await response.json();
-		// 按 ID 倒序排列（最新的在前面），并添加默认值
 		interface RawMicroNews {
 			id: string;
 			title: string;
@@ -76,28 +105,28 @@ async function loadMicroNews() {
 			time?: string;
 			priority?: string;
 		}
-		allNews = data
+		allNews = (Array.isArray(data) ? data : [])
 			.map((item: RawMicroNews) => ({
 				...item,
-				priority: item.priority || "medium",
+				priority: (item.priority || "medium") as Priority,
 				time: item.time || "",
 			}))
 			.sort((a: MicroNews, b: MicroNews) => Number(b.id) - Number(a.id));
-		displayNews = allNews.slice(0, 3);
 	} catch (error) {
 		console.error("[MicroNewsModule] 加载失败:", error);
 		allNews = [];
-		displayNews = [];
+	} finally {
+		loaded = true;
 	}
 }
 
 onMount(() => {
-	// 确保在客户端执行
-	if (typeof window !== "undefined") {
-		loadMicroNews();
-	} else {
-	}
+	if (typeof window !== "undefined") loadMicroNews();
 });
+
+$: if (loaded) {
+	dispatch("summary", allNews.length ? `${allNews.length} 条` : "空着");
+}
 
 function openModal() {
 	showModal = true;
@@ -105,7 +134,6 @@ function openModal() {
 
 function closeModal() {
 	showModal = false;
-	// 重置筛选条件
 	selectedSender = "all";
 	selectedPriority = "all";
 	selectedDateRange = "all";
@@ -113,37 +141,19 @@ function closeModal() {
 }
 
 function handleKeydown(event: KeyboardEvent) {
-	if (event.key === "Escape" && showModal) {
-		closeModal();
-	}
+	if (event.key === "Escape" && showModal) closeModal();
 }
 
-function getPriorityLabel(
-	priority: "high" | "medium" | "low" | "doing",
-): string {
-	const labels: Record<"high" | "medium" | "low" | "doing", string> = {
-		high: "重要",
-		medium: "一般",
-		low: "普通",
-		doing: "正在做",
-	};
-	return labels[priority];
+/** 绝对时间给 title 提示用 */
+function absolute(news: MicroNews): string {
+	return news.time ? `${news.date} ${news.time}` : news.date;
 }
 
-function getPriorityClass(priority: string): string {
-	return `priority-${priority}`;
+function when(news: MicroNews): string {
+	return relativeDay(new Date(news.date));
 }
 
-function formatDateTime(dateStr: string, timeStr?: string): string {
-	// 如果有时间，返回完整的日期时间
-	if (timeStr) {
-		return `${dateStr} ${timeStr}`;
-	}
-	// 只有日期
-	return dateStr;
-}
-
-// 当模态框显示时，将其移动到 body 并锁定滚动
+// 模态框移到 body 下并锁滚动，避免被展板的层叠上下文裁掉
 $: if (showModal && modalElement) {
 	document.body.appendChild(modalElement);
 	document.body.style.overflow = "hidden";
@@ -152,173 +162,124 @@ $: if (showModal && modalElement) {
 }
 
 onDestroy(() => {
-	if (typeof document !== "undefined") {
-		document.body.style.overflow = "";
-	}
+	if (typeof document !== "undefined") document.body.style.overflow = "";
 });
 </script>
 
 <svelte:window on:keydown={handleKeydown} />
 
-<div class="micro-news-module card-base">
-  <h3 class="module-title">Micro News ({allNews.length})</h3>
-  <div class="news-list">
-    {#each displayNews as news (news.id)}
-      <div class="news-item">
-        <div class="news-header">
-          <div class="news-title">{news.title}</div>
-          <span class="priority-badge {getPriorityClass(news.priority)}">
-            {getPriorityLabel(news.priority)}
-          </span>
+{#if !loaded}
+  <p class="empty">读取中…</p>
+{:else if allNews.length === 0}
+  <p class="empty">还没有消息。在 <code>public/micro-news.json</code> 里加一条试试。</p>
+{:else}
+  <ol class="feed">
+    {#each preview as news (news.id)}
+      <li class="entry" data-priority={news.priority}>
+        <span class="dot" aria-hidden="true"></span>
+        <div class="entry-body">
+          <div class="entry-head">
+            <span class="title">{news.title}</span>
+            <time class="when" title={absolute(news)}>{when(news)}</time>
+          </div>
+          <p class="content">{news.content}</p>
+          {#if LOUD.includes(news.priority)}
+            <span class="tag">{PRIORITY_LABEL[news.priority]}</span>
+          {/if}
         </div>
-        <div class="news-content">{news.content}</div>
-        <div class="news-meta">
-          <span class="news-time">{formatDateTime(news.date, news.time)}</span>
-          <span class="news-sender">{news.sender}</span>
-        </div>
-      </div>
+      </li>
     {/each}
-  </div>
-  <div class="view-more">
-    <button type="button" class="view-more-link" on:click={openModal}>查看更多 →</button>
-  </div>
-</div>
+  </ol>
 
-<!-- 全局模态框 -->
+  {#if allNews.length > PREVIEW_COUNT}
+    <button type="button" class="more" on:click={openModal}>
+      查看全部 {allNews.length} 条 →
+    </button>
+  {/if}
+{/if}
+
+<!-- 完整列表：筛选 + 分页，翻旧账的场景 -->
 {#if showModal}
   <!-- svelte-ignore a11y-click-events-have-key-events -->
   <!-- svelte-ignore a11y-no-static-element-interactions -->
-  <div 
-    bind:this={modalElement}
-    class="modal-root"
-    on:click={closeModal}
-  >
-    <div class="modal-content" on:click|stopPropagation>
-      <div class="modal-header">
-        <h2 class="modal-title">所有微新闻</h2>
-        <button type="button" class="close-btn" on:click={closeModal} title="关闭">×</button>
+  <div bind:this={modalElement} class="modal-root" on:click={closeModal}>
+    <div class="modal" on:click|stopPropagation>
+      <div class="modal-head">
+        <h2 class="modal-title">全部微新闻</h2>
+        <button type="button" class="close" on:click={closeModal} title="关闭">×</button>
       </div>
-      
-      <!-- 筛选器 -->
+
       <div class="filters">
-        <div class="filter-group">
-          <label for="sender-filter">发送者：</label>
-          <select id="sender-filter" bind:value={selectedSender}>
+        <label class="filter">
+          <span>发送者</span>
+          <select bind:value={selectedSender}>
             <option value="all">全部</option>
-            {#each senders.filter(s => s !== 'all') as sender}
-              <option value={sender}>{sender}</option>
+            {#each senders as sender}<option value={sender}>{sender}</option>{/each}
+          </select>
+        </label>
+        <label class="filter">
+          <span>重要等级</span>
+          <select bind:value={selectedPriority}>
+            <option value="all">全部</option>
+            {#each Object.entries(PRIORITY_LABEL) as [value, label]}
+              <option {value}>{label}</option>
             {/each}
           </select>
-        </div>
-        
-        <div class="filter-group">
-          <label for="priority-filter">重要等级：</label>
-          <select id="priority-filter" bind:value={selectedPriority}>
-            <option value="all">全部</option>
-            <option value="high">重要</option>
-            <option value="medium">一般</option>
-            <option value="low">普通</option>
-            <option value="doing">正在做</option>
-          </select>
-        </div>
-        
-        <div class="filter-group">
-          <label for="date-filter">日期范围：</label>
-          <select id="date-filter" bind:value={selectedDateRange}>
+        </label>
+        <label class="filter">
+          <span>日期范围</span>
+          <select bind:value={selectedDateRange}>
             <option value="all">全部</option>
             <option value="today">今天</option>
             <option value="week">最近一周</option>
             <option value="month">最近一月</option>
           </select>
-        </div>
-        
-        <div class="filter-group">
-          <label for="items-per-page">每页显示：</label>
-          <select id="items-per-page" bind:value={itemsPerPage}>
-            <option value={6}>6条</option>
-            <option value={10}>10条</option>
-            <option value={20}>20条</option>
+        </label>
+        <label class="filter">
+          <span>每页</span>
+          <select bind:value={itemsPerPage}>
+            <option value={6}>6 条</option>
+            <option value={10}>10 条</option>
+            <option value={20}>20 条</option>
           </select>
-        </div>
+        </label>
       </div>
-      
+
       <div class="modal-body">
         {#if paginatedNews.length > 0}
-          {#each paginatedNews as news (news.id)}
-            <div class="news-item modal-news-item">
-              <div class="news-header">
-                <div class="news-title">{news.title}</div>
-                <span class="priority-badge {getPriorityClass(news.priority)}">
-                  {getPriorityLabel(news.priority)}
-                </span>
-              </div>
-              <div class="news-content">{news.content}</div>
-              <div class="news-meta">
-                <span class="news-time">{formatDateTime(news.date, news.time)}</span>
-                <span class="news-sender">{news.sender}</span>
-              </div>
-            </div>
-          {/each}
+          <ol class="feed modal-feed">
+            {#each paginatedNews as news (news.id)}
+              <li class="entry" data-priority={news.priority}>
+                <span class="dot" aria-hidden="true"></span>
+                <div class="entry-body">
+                  <div class="entry-head">
+                    <span class="title">{news.title}</span>
+                    <time class="when" title={absolute(news)}>{when(news)}</time>
+                  </div>
+                  <p class="content">{news.content}</p>
+                  <div class="entry-meta">
+                    <span class="tag">{PRIORITY_LABEL[news.priority]}</span>
+                    <span class="sender">{news.sender}</span>
+                    <span class="abs">{absolute(news)}</span>
+                  </div>
+                </div>
+              </li>
+            {/each}
+          </ol>
         {:else}
-          <div class="no-results">没有找到符合条件的新闻</div>
+          <p class="no-results">这组条件下没有消息。换个筛选试试。</p>
         {/if}
       </div>
-      
-      <!-- 分页器 -->
+
       {#if totalPages > 1}
-        <div class="pagination">
-          <button 
-            type="button"
-            class="page-btn" 
-            disabled={currentPage === 1}
-            on:click={() => currentPage = 1}
-          >
-            首页
-          </button>
-          <button 
-            type="button"
-            class="page-btn" 
-            disabled={currentPage === 1}
-            on:click={() => currentPage--}
-          >
+        <div class="pager">
+          <button type="button" class="page-btn" disabled={currentPage === 1} on:click={() => currentPage--}>
             上一页
           </button>
-          
-          <div class="page-numbers">
-            {#each Array(totalPages) as _, i}
-              {#if i + 1 === 1 || i + 1 === totalPages || (i + 1 >= currentPage - 1 && i + 1 <= currentPage + 1)}
-                <button 
-                  type="button"
-                  class="page-number" 
-                  class:active={currentPage === i + 1}
-                  on:click={() => currentPage = i + 1}
-                >
-                  {i + 1}
-                </button>
-              {:else if i + 1 === currentPage - 2 || i + 1 === currentPage + 2}
-                <span class="page-ellipsis">...</span>
-              {/if}
-            {/each}
-          </div>
-          
-          <button 
-            type="button"
-            class="page-btn" 
-            disabled={currentPage === totalPages}
-            on:click={() => currentPage++}
-          >
+          <span class="page-info">{currentPage} / {totalPages}</span>
+          <button type="button" class="page-btn" disabled={currentPage === totalPages} on:click={() => currentPage++}>
             下一页
           </button>
-          <button 
-            type="button"
-            class="page-btn" 
-            disabled={currentPage === totalPages}
-            on:click={() => currentPage = totalPages}
-          >
-            末页
-          </button>
-          
-          <span class="page-info">第 {currentPage} / {totalPages} 页</span>
         </div>
       {/if}
     </div>
@@ -326,467 +287,277 @@ onDestroy(() => {
 {/if}
 
 <style>
-  .micro-news-module {
-    padding: 1.5rem;
-    border-radius: var(--radius-large);
-    height: 100%;
-    display: flex;
-    flex-direction: column;
+  .empty {
+    margin: 0;
+    font-size: 0.85rem;
+    line-height: 1.6;
+    opacity: 0.5;
   }
-
-  .module-title {
-    font-size: 1.25rem;
-    font-weight: 600;
-    margin-bottom: 1rem;
-    color: var(--primary);
-  }
-
-  :global(.dark) .module-title {
-    color: oklch(0.75 0.14 var(--hue));
-  }
-
-  .news-list {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-    flex: 1;
-  }
-
-  .news-item {
-    padding: 0.75rem;
-    background: var(--card-bg);
-    border-radius: 0.5rem;
-    transition: transform 0.2s, box-shadow 0.2s;
-  }
-
-  .news-item:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  }
-
-  .news-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 0.5rem;
-    margin-bottom: 0.5rem;
-  }
-
-  .news-title {
-    font-weight: 500;
-    flex: 1;
-  }
-
-  :global(.dark) .news-title {
-    color: rgba(255, 255, 255, 0.9);
-  }
-
-  .priority-badge {
-    font-size: 0.7rem;
-    padding: 0.2rem 0.5rem;
+  .empty code {
+    font-size: 0.9em;
+    padding: 0.05rem 0.25rem;
     border-radius: 0.25rem;
-    font-weight: 500;
-    white-space: nowrap;
+    background: var(--btn-regular-bg);
   }
 
-  .priority-high {
-    background: rgba(239, 68, 68, 0.15);
-    color: rgb(239, 68, 68);
-  }
-
-  .priority-medium {
-    background: rgba(251, 191, 36, 0.15);
-    color: rgb(251, 191, 36);
-  }
-
-  .priority-low {
-    background: rgba(59, 130, 246, 0.15);
-    color: rgb(59, 130, 246);
-  }
-
-  .priority-doing {
-    background: rgba(14, 165, 233, 0.15);
-    color: rgb(14, 165, 233);
-  }
-
-  .news-content {
-    font-size: 0.875rem;
-    opacity: 0.7;
-    margin-bottom: 0.5rem;
-  }
-
-  :global(.dark) .news-content {
-    color: rgba(255, 255, 255, 0.8);
-  }
-
-  .news-meta {
-    display: flex;
-    gap: 1rem;
-    font-size: 0.75rem;
-    opacity: 0.6;
-  }
-
-  :global(.dark) .news-meta {
-    color: rgba(255, 255, 255, 0.7);
-  }
-
-  .view-more {
-    margin-top: 1rem;
-    text-align: right;
-  }
-
-  .view-more-link {
-    font-size: 0.875rem;
-    color: var(--primary);
-    background: none;
-    border: none;
-    cursor: pointer;
-    transition: opacity 0.2s;
+  /* ---------- 时间线 ---------- */
+  .feed {
+    list-style: none;
+    margin: 0;
     padding: 0;
   }
 
-  .view-more-link:hover {
-    opacity: 0.7;
+  .entry {
+    position: relative;
+    display: flex;
+    gap: 0.7rem;
+    padding-bottom: 0.9rem;
   }
 
-  /* 全屏模态框样式 */
+  /* 圆点之间的连线，最后一条不画 */
+  .entry::before {
+    content: "";
+    position: absolute;
+    left: 0.24rem;
+    top: 0.9rem;
+    bottom: 0;
+    width: 1px;
+    background: var(--line-divider);
+  }
+  .entry:last-child::before { display: none; }
+  .entry:last-child { padding-bottom: 0; }
+
+  .dot {
+    flex-shrink: 0;
+    width: 0.5rem;
+    height: 0.5rem;
+    margin-top: 0.4rem;
+    border-radius: 50%;
+    background: var(--pri, var(--primary));
+  }
+
+  /*
+   * 优先级配色。原来的 rgb(251,191,36) 在浅色底上对比度不足，
+   * 改用 oklch 分别给亮暗两套明度，两边都读得清。
+   */
+  .entry[data-priority="high"]   { --pri: oklch(0.58 0.19 25); }
+  .entry[data-priority="medium"] { --pri: oklch(0.62 0.13 72); }
+  .entry[data-priority="low"]    { --pri: oklch(0.58 0.13 250); }
+  .entry[data-priority="doing"]  { --pri: oklch(0.60 0.13 200); }
+  :global(.dark) .entry[data-priority="high"]   { --pri: oklch(0.74 0.17 25); }
+  :global(.dark) .entry[data-priority="medium"] { --pri: oklch(0.80 0.13 72); }
+  :global(.dark) .entry[data-priority="low"]    { --pri: oklch(0.75 0.12 250); }
+  :global(.dark) .entry[data-priority="doing"]  { --pri: oklch(0.78 0.12 200); }
+
+  .entry-body { min-width: 0; flex: 1; }
+
+  .entry-head {
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
+  }
+
+  .title {
+    flex: 1;
+    min-width: 0;
+    font-size: 0.88rem;
+    font-weight: 600;
+    line-height: 1.45;
+  }
+
+  .when {
+    flex-shrink: 0;
+    font-size: 0.72rem;
+    opacity: 0.4;
+    white-space: nowrap;
+  }
+
+  .content {
+    margin: 0.15rem 0 0;
+    font-size: 0.8rem;
+    line-height: 1.6;
+    opacity: 0.6;
+  }
+
+  .tag {
+    display: inline-block;
+    margin-top: 0.35rem;
+    font-size: 0.68rem;
+    font-weight: 600;
+    padding: 0.05rem 0.4rem;
+    border-radius: 0.25rem;
+    color: var(--pri, var(--primary));
+    background: color-mix(in oklab, var(--pri, var(--primary)) 14%, transparent);
+  }
+
+  .more {
+    margin-top: 0.9rem;
+    padding: 0;
+    border: none;
+    background: none;
+    font-size: 0.8rem;
+    color: var(--primary);
+    cursor: pointer;
+    opacity: 0.85;
+    transition: opacity 0.15s ease;
+  }
+  .more:hover { opacity: 1; }
+
+  /* ---------- 模态框 ---------- */
   .modal-root {
-    /* 完全脱离文档流 */
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    right: 0 !important;
-    bottom: 0 !important;
-    width: 100vw !important;
-    height: 100vh !important;
-    z-index: 999999 !important;
-    
-    /* 背景和模糊 */
-    background: rgba(0, 0, 0, 0.6) !important;
-    backdrop-filter: blur(12px) !important;
-    -webkit-backdrop-filter: blur(12px) !important;
-    
-    /* 居中布局 */
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    padding: 1rem !important;
-    
-    /* 动画 */
-    animation: fadeIn 0.2s ease-out !important;
-    
-    /* 滚动 */
-    overflow-y: auto !important;
+    position: fixed;
+    inset: 0;
+    z-index: 999999;
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    overflow-y: auto;
+    animation: fade 0.2s ease-out;
   }
-  
-  @keyframes fadeIn {
-    from {
-      opacity: 0;
-    }
-    to {
-      opacity: 1;
-    }
-  }
+  @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
 
-  .modal-content {
-    background: white;
-    border-radius: 1rem;
-    max-width: 900px;
+  .modal {
     width: 100%;
-    max-height: 90vh;
+    max-width: 46rem;
+    max-height: 88vh;
     display: flex;
     flex-direction: column;
-    box-shadow: 0 25px 80px rgba(0, 0, 0, 0.4);
-    animation: slideUp 0.3s ease-out;
+    border-radius: 1rem;
     overflow: hidden;
-    position: relative;
+    background: var(--card-bg);
+    color: inherit;
+    box-shadow: 0 25px 80px rgba(0, 0, 0, 0.35);
+    animation: rise 0.28s cubic-bezier(0.22, 0.8, 0.3, 1);
+  }
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(24px) scale(0.97); }
+    to   { opacity: 1; transform: none; }
   }
 
-  :global(.dark) .modal-content {
-    background: oklch(0.23 0.01 var(--hue));
-  }
-
-  @keyframes slideUp {
-    from {
-      opacity: 0;
-      transform: translateY(30px) scale(0.95);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0) scale(1);
-    }
-  }
-
-  .modal-header {
-    background: linear-gradient(135deg, var(--primary) 0%, oklch(0.65 0.14 calc(var(--hue) + 20)) 100%);
+  .modal-head {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    padding: 1.5rem;
-    color: white;
+    justify-content: space-between;
+    padding: 1.1rem 1.35rem;
+    border-bottom: 1px solid var(--line-divider);
   }
 
   .modal-title {
-    font-size: 1.5rem;
-    font-weight: 600;
     margin: 0;
+    font-size: 1.1rem;
+    font-weight: 700;
   }
 
-  .close-btn {
-    background: rgba(255, 255, 255, 0.2);
+  .close {
+    width: 1.9rem;
+    height: 1.9rem;
+    display: grid;
+    place-items: center;
     border: none;
-    color: white;
-    width: 2rem;
-    height: 2rem;
     border-radius: 50%;
-    cursor: pointer;
-    font-size: 1.5rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s;
+    background: var(--btn-regular-bg);
+    color: inherit;
+    font-size: 1.25rem;
     line-height: 1;
+    cursor: pointer;
+    transition: background 0.15s ease, transform 0.2s ease;
   }
-
-  .close-btn:hover {
-    background: rgba(255, 255, 255, 0.3);
+  .close:hover {
+    background: var(--btn-plain-bg-hover);
     transform: rotate(90deg);
   }
 
-  /* 筛选器样式 */
   .filters {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 1rem;
-    padding: 1rem 1.5rem;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-    background: rgba(0, 0, 0, 0.02);
+    grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+    gap: 0.75rem;
+    padding: 0.9rem 1.35rem;
+    border-bottom: 1px solid var(--line-divider);
   }
 
-  :global(.dark) .filters {
-    border-color: rgba(255, 255, 255, 0.1);
-    background: rgba(255, 255, 255, 0.02);
-  }
-
-  .filter-group {
+  .filter {
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
+    gap: 0.2rem;
+    font-size: 0.72rem;
+    opacity: 0.75;
   }
 
-  .filter-group label {
-    font-size: 0.75rem;
-    opacity: 0.7;
-    font-weight: 500;
-  }
-
-  :global(.dark) .filter-group label {
-    color: rgba(255, 255, 255, 0.8);
-  }
-
-  .filter-group select {
-    padding: 0.5rem 2rem 0.5rem 0.75rem;
-    border-radius: 0.375rem;
-    border: 1px solid rgba(0, 0, 0, 0.1);
-    background: white;
-    font-size: 0.875rem;
+  .filter select {
+    padding: 0.35rem 0.5rem;
+    border: 1px solid var(--line-divider);
+    border-radius: 0.4rem;
+    background: transparent;
+    color: inherit;
+    font-size: 0.82rem;
     cursor: pointer;
-    transition: all 0.2s;
-    appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 0.5rem center;
-    background-size: 12px;
-  }
-
-  :global(.dark) .filter-group select {
-    background-color: rgba(255, 255, 255, 0.05);
-    border-color: rgba(255, 255, 255, 0.1);
-    color: rgba(255, 255, 255, 0.9);
-  }
-
-  .filter-group select:hover {
-    border-color: var(--primary);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  }
-
-  .filter-group select:focus {
-    outline: none;
-    border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(var(--primary-rgb, 88, 88, 88), 0.1);
   }
 
   .modal-body {
-    padding: 1.5rem;
+    padding: 1.1rem 1.35rem;
     overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
     flex: 1;
   }
 
-  /* 模态框滚动条样式 */
-  .modal-body::-webkit-scrollbar {
-    width: 8px;
-  }
+  .modal-feed .entry { padding-bottom: 1.1rem; }
 
-  .modal-body::-webkit-scrollbar-track {
-    background: transparent;
+  .entry-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-top: 0.4rem;
+    font-size: 0.7rem;
+    opacity: 0.5;
   }
-
-  .modal-body::-webkit-scrollbar-thumb {
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 4px;
-    transition: background 0.2s;
-  }
-
-  .modal-body::-webkit-scrollbar-thumb:hover {
-    background: rgba(0, 0, 0, 0.3);
-  }
-
-  :global(.dark) .modal-body::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.2);
-  }
-
-  :global(.dark) .modal-body::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.3);
-  }
-
-  .modal-news-item {
-    border: 1px solid rgba(0, 0, 0, 0.1);
-  }
-
-  :global(.dark) .modal-news-item {
-    border-color: rgba(255, 255, 255, 0.1);
-  }
+  .entry-meta .tag { margin-top: 0; opacity: 1; }
 
   .no-results {
+    margin: 0;
+    padding: 2.5rem 0;
     text-align: center;
-    padding: 3rem 1rem;
+    font-size: 0.85rem;
     opacity: 0.5;
-    font-size: 0.875rem;
   }
 
-  :global(.dark) .no-results {
-    color: rgba(255, 255, 255, 0.8);
-  }
-
-  /* 分页器样式 */
-  .pagination {
+  .pager {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 0.5rem;
-    padding: 1rem 1.5rem;
-    border-top: 1px solid rgba(0, 0, 0, 0.1);
-    flex-wrap: wrap;
-    background: rgba(0, 0, 0, 0.02);
+    gap: 0.75rem;
+    padding: 0.85rem 1.35rem;
+    border-top: 1px solid var(--line-divider);
   }
 
-  :global(.dark) .pagination {
-    border-color: rgba(255, 255, 255, 0.1);
-    background: rgba(255, 255, 255, 0.02);
-  }
-
-  .page-btn,
-  .page-number {
-    padding: 0.5rem 0.75rem;
-    border: 1px solid rgba(0, 0, 0, 0.1);
-    background: white;
-    border-radius: 0.375rem;
+  .page-btn {
+    padding: 0.35rem 0.85rem;
+    border: 1px solid var(--line-divider);
+    border-radius: 9999px;
+    background: transparent;
+    color: inherit;
+    font-size: 0.8rem;
     cursor: pointer;
-    font-size: 0.875rem;
-    transition: all 0.2s;
+    transition: background 0.15s ease;
   }
-
-  :global(.dark) .page-btn,
-  :global(.dark) .page-number {
-    background: rgba(255, 255, 255, 0.05);
-    border-color: rgba(255, 255, 255, 0.1);
-    color: rgba(255, 255, 255, 0.9);
-  }
-
-  .page-btn:hover:not(:disabled),
-  .page-number:hover {
-    background: rgba(0, 0, 0, 0.05);
-    border-color: var(--primary);
-  }
-
-  :global(.dark) .page-btn:hover:not(:disabled),
-  :global(.dark) .page-number:hover {
-    background: rgba(255, 255, 255, 0.1);
-  }
-
-  .page-btn:disabled {
-    opacity: 0.3;
-    cursor: not-allowed;
-  }
-
-  .page-number.active {
-    background: var(--primary);
-    color: white;
-    border-color: var(--primary);
-  }
-
-  .page-numbers {
-    display: flex;
-    gap: 0.25rem;
-    align-items: center;
-  }
-
-  .page-ellipsis {
-    padding: 0 0.25rem;
-    opacity: 0.5;
-  }
+  .page-btn:hover:not(:disabled) { background: var(--btn-plain-bg-hover); }
+  .page-btn:disabled { opacity: 0.3; cursor: not-allowed; }
 
   .page-info {
-    font-size: 0.875rem;
-    opacity: 0.7;
-    margin-left: 0.5rem;
+    font-size: 0.8rem;
+    opacity: 0.6;
+    font-variant-numeric: tabular-nums;
   }
 
-  :global(.dark) .page-info {
-    color: rgba(255, 255, 255, 0.8);
+  @media (max-width: 640px) {
+    .filters { grid-template-columns: 1fr 1fr; padding: 0.8rem 1rem; }
+    .modal-head, .modal-body, .pager { padding-left: 1rem; padding-right: 1rem; }
   }
 
-  @media (max-width: 768px) {
-    .modal-content {
-      max-height: 90vh;
-      max-width: 100%;
-    }
-
-    .modal-header {
-      padding: 1rem;
-    }
-
-    .modal-title {
-      font-size: 1.25rem;
-    }
-
-    .filters {
-      grid-template-columns: 1fr;
-      padding: 1rem;
-    }
-
-    .modal-body {
-      padding: 1rem;
-    }
-
-    .pagination {
-      padding: 1rem;
-      font-size: 0.75rem;
-    }
-
-    .page-btn,
-    .page-number {
-      padding: 0.4rem 0.6rem;
-      font-size: 0.75rem;
-    }
-
-    .page-info {
-      width: 100%;
-      text-align: center;
-      margin-top: 0.5rem;
-    }
+  @media (prefers-reduced-motion: reduce) {
+    .modal-root, .modal { animation: none; }
+    .close, .more, .page-btn { transition: none; }
   }
 </style>
