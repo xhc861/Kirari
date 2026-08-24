@@ -1,9 +1,9 @@
 {
-  "checkedAt": "2026-08-17T04:04:56.456Z",
+  "checkedAt": "2026-08-24T04:08:26.047Z",
   "summary": {
-    "ok": 9,
+    "ok": 10,
     "blocked": 3,
-    "unreachable": 3
+    "unreachable": 2
   },
   "results": [
     {
@@ -44,9 +44,8 @@
     },
     {
       "url": "https://adclosenn.top",
-      "status": "unreachable",
-      "code": 0,
-      "reason": "network"
+      "status": "ok",
+      "code": 200
     },
     {
       "url": "https://blog.mxdyeah.com/",
